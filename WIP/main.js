@@ -846,8 +846,6 @@ function genpageLoad() {
     });
 }
 
-
-
 class EnhancedLoRAManager {
     constructor() {
         this.frequencyStats = JSON.parse(localStorage.getItem('lora_frequency_stats') || '{}');
@@ -1451,23 +1449,9 @@ class EnhancedLoRAManager {
     }
 }
 
-/**
- * Initialize enhanced browsers
- * Add to the end of models.js or main.js after browsers are created
- */
+// Initialize when the page is ready
 sessionReadyCallbacks.push(() => {
-    // Wait a bit for browsers to be fully created
-    setTimeout(() => {
-        try {
-            if (typeof sdLoraBrowser !== 'undefined' && sdLoraBrowser.browser) {
-                enhanceBrowserWithDropdown(sdLoraBrowser.browser);
-            }
-            if (typeof sdEmbedBrowser !== 'undefined' && sdEmbedBrowser.browser) {
-                enhanceBrowserWithDropdown(sdEmbedBrowser.browser);
-            }
-            console.log('Enhanced browser views applied');
-        } catch (e) {
-            console.warn('Could not enhance browsers:', e);
-        }
-    }, 1000);
+    const enhancedLoRAManager = new EnhancedLoRAManager();
+    enhancedLoRAManager.init();
+    window.enhancedLoRAManager = enhancedLoRAManager;
 });

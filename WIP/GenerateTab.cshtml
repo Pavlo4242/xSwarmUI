@@ -2,86 +2,55 @@
 
 <div class="t2i-top-bar-container" style="line-height:1.5">
     <div class="t2i-top-bar" id="t2i_top_bar">
-        <!-- LEFT SIDEBAR WITH SPLIT -->
         <div class="input-sidebar" id="input_sidebar">
-            <div class="sidebar-top-section" id="input_sidebar_top">
-                <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Left Sidebar" data-content="inputsidebartab_content" role="tablist" id="inputsidebartabcollection">
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link active translate" data-bs-toggle="tab" href="#Input-Sidebar-Main-Tab" aria-selected="true" role="tab">Inputs</a>
-                    </li>
-                </ul>
-                <div class="tab-content" id="inputsidebartab_content">
-                    <div class="tab-pane show active genpage-bottom-tab" id="Input-Sidebar-Main-Tab" role="tabpanel">
-                        <span class="interrupt_line"></span>
-                        <div class="main_inputs_area_wrapper" id="main_inputs_area_wrapper">
-                            <div class="input_filter_container">
-                                <input type="text translate" class="main_inputs_filter auto-text" id="main_inputs_filter" oninput="hideUnsupportableParams()" placeholder="Filter parameters..." />
-                                <span class="clear_input_icon" id="clear_input_icon" onclick="clearParamFilterInput()">&#x2715;</span>
-                            </div>
-                            <div id="main_inputs_area"></div>
-                            <div id="main_inputs_area_hidden" class="main_inputs_area_hidden"></div>
-                            <div style="height: 10rem;"></div>
+            <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Left Sidebar" data-content="inputsidebartab_content" role="tablist" id="inputsidebartabcollection">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active translate" data-bs-toggle="tab" href="#Input-Sidebar-Main-Tab" aria-selected="true" role="tab">Inputs</a>
+                </li>
+            </ul>
+            <div class="tab-content" id="inputsidebartab_content">
+                <div class="tab-pane show active genpage-bottom-tab" id="Input-Sidebar-Main-Tab" role="tabpanel">
+                    <span class="interrupt_line"></span>
+                    <div class="main_inputs_area_wrapper" id="main_inputs_area_wrapper">
+                        <div class="input_filter_container">
+                            <input type="text translate" class="main_inputs_filter auto-text" id="main_inputs_filter" oninput="hideUnsupportableParams()" placeholder="Filter parameters..." />
+                            <span class="clear_input_icon" id="clear_input_icon" onclick="clearParamFilterInput()">&#x2715;</span>
                         </div>
-                        <div class="advanced_input_checkbox">
-                            <input type="checkbox" id="advanced_options_checkbox" onclick="toggle_advanced()"/>
-                            <span onclick="toggle_advanced_checkbox_manual()"><span class="translate">Display Advanced Options?</span> <span id="advanced_hidden_count"></span></span>
-                        </div>
+                        <div id="main_inputs_area"></div>
+                        <div id="main_inputs_area_hidden" class="main_inputs_area_hidden"></div>
+                        <div style="height: 10rem;"></div>
+                    </div>
+                    <div class="advanced_input_checkbox">
+                        <input type="checkbox" id="advanced_options_checkbox" onclick="toggle_advanced()"/>
+                        <span onclick="toggle_advanced_checkbox_manual()"><span class="translate">Display Advanced Options?</span> <span id="advanced_hidden_count"></span></span>
                     </div>
                 </div>
             </div>
-            <div class="sidebar-horizontal-split splitter-bar" id="input_sidebar_split"></div>
-            <div class="sidebar-bottom-section" id="input_sidebar_bottom">
-                <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Lower Left Sidebar" data-content="inputsidebartab_bottom_content" role="tablist" id="inputsidebartabbottomcollection">
-                </ul>
-                <div class="tab-content" id="inputsidebartab_bottom_content">
+        </div><div class="t2i-top-split-bar splitter-bar" id="t2i-top-split-bar"><div class="t2i-split-quickbutton t2i-top-split-quickbutton" id="t2i-top-split-quickbutton">&#x21DA;</div></div><div class="main-image-area" id="main_image_area"><div class="current_image_wrapbox" id="current_image_wrapbox">
+        <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Center Area" data-content="currentimagecontent" role="tablist" id="currentimagecollection">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active translate" data-bs-toggle="tab" href="#Image-Result-Tab" aria-selected="true" role="tab">Image</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link translate" data-bs-toggle="tab" href="#Metadata-Tab" aria-selected="false" role="tab">Metadata</a>
+                </li>
+            </ul>
+            <div class="tab-content" id="currentimagecontent">
+                <div class="tab-pane show active genpage-bottom-tab" style="overflow:hidden" id="Image-Result-Tab" role="tabpanel">
+                    <div class="image_editor_input" id="image_editor_input" style="display:none;"></div><div class="image_editor_sizebar splitter-bar t2i-top-imageeditor-bar" id="image_editor_sizebar" style="display:none;"></div><div class="current_image drag_image_target" id="current_image"><div id="welcome_message" class="welcome_message">@(new HtmlString(Program.VersionUpdateMessage ?? (Program.ServerSettings.ShowExperimentalFeatures ? "Experimental Features are enabled. Issue reports will not be accepted." : Program.ServerSettings.UI.OverrideWelcomeMessage)))</div></div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- VERTICAL SPLIT BAR (LEFT) -->
-        <div class="t2i-top-split-bar splitter-bar" id="t2i-top-split-bar">
-            <div class="t2i-split-quickbutton t2i-top-split-quickbutton" id="t2i-top-split-quickbutton">&#x21DA;</div>
-        </div>
-        
-        <!-- CENTER IMAGE AREA -->
-        <div class="main-image-area" id="main_image_area">
-            <div class="current_image_wrapbox" id="current_image_wrapbox">
-                <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Center Area" data-content="currentimagecontent" role="tablist" id="currentimagecollection">
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link active translate" data-bs-toggle="tab" href="#Image-Result-Tab" aria-selected="true" role="tab">Image</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link translate" data-bs-toggle="tab" href="#Metadata-Tab" aria-selected="false" role="tab">Metadata</a>
-                    </li>
-                </ul>
-                <div class="tab-content" id="currentimagecontent">
-                    <div class="tab-pane show active genpage-bottom-tab" style="overflow:hidden" id="Image-Result-Tab" role="tabpanel">
-                        <div class="image_editor_input" id="image_editor_input" style="display:none;"></div>
-                        <div class="image_editor_sizebar splitter-bar t2i-top-imageeditor-bar" id="image_editor_sizebar" style="display:none;"></div>
-                        <div class="current_image drag_image_target" id="current_image">
-                            <div id="welcome_message" class="welcome_message">@(new HtmlString(Program.VersionUpdateMessage ?? (Program.ServerSettings.ShowExperimentalFeatures ? "Experimental Features are enabled. Issue reports will not be accepted." : Program.ServerSettings.UI.OverrideWelcomeMessage)))</div>
-                        </div>
-                    </div>
-                    <div class="tab-pane genpage-bottom-tab" id="Metadata-Tab" role="tabpanel">
-                        <div id="image_metadata_container" class="current-image-extras-wrapper" style="width: 100%; height: 100%; overflow-y: auto; display: block !important;"></div>
-                    </div>
-                    <div id="extra_welcome_message">
-                        @if (Program.ServerSettings.UserAuthorization.AuthorizationRequired && Model.User is not null && Model.User.Data.IsPasswordSetByAdmin && Model.User.UserID != SessionHandler.LocalUserID && !Model.User.HasPermission(Permissions.ManageUsers))
-                        {
-                            <div class="translate password-change-warn">Your password was set by an admin, and you haven't yet changed it! Please go to the User Tab, then click "Change Password".</div>
-                        }
-                        @(new HtmlString(Program.ServerSettings.UI.ExtraWelcomeInfo))
-                    </div>
+                <div class="tab-pane genpage-bottom-tab" id="Metadata-Tab" role="tabpanel">
+                    <div id="image_metadata_container" class="current-image-extras-wrapper" style="width: 100%; height: 100%; overflow-y: auto; display: block !important;"></div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- VERTICAL SPLIT BAR (RIGHT) -->
-        <div class="t2i-top-split-bar splitter-bar" id="t2i-top-2nd-split-bar"></div>
-        
-        <!-- RIGHT SIDEBAR WITH SPLIT -->
-        <div class="current_image_batch" id="current_image_batch_wrapper">
-            <div class="sidebar-top-section" id="right_sidebar_top">
+                <div id="extra_welcome_message">
+                    @if (Program.ServerSettings.UserAuthorization.AuthorizationRequired && Model.User is not null && Model.User.Data.IsPasswordSetByAdmin && Model.User.UserID != SessionHandler.LocalUserID && !Model.User.HasPermission(Permissions.ManageUsers))
+                    {
+                        <div class="translate password-change-warn">Your password was set by an admin, and you haven't yet changed it!
+                        Please go to the User Tab, then click "Change Password".</div>
+                    }
+                    @(new HtmlString(Program.ServerSettings.UI.ExtraWelcomeInfo))
+                </div>
+            </div></div><div class="t2i-top-split-bar splitter-bar" id="t2i-top-2nd-split-bar"></div><div class="current_image_batch" id="current_image_batch_wrapper">
                 <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Right Sidebar" data-content="rightsidebarcontent" role="tablist" id="rightsidebarcollection">
                     <li class="nav-item" role="presentation">
                         <a class="nav-link active translate" data-bs-toggle="tab" href="#Image-Batch-Tab" aria-selected="true" role="tab">Batch</a>
@@ -126,57 +95,41 @@
                     </div>
                 </div>
             </div>
-            <div class="sidebar-horizontal-split splitter-bar" id="right_sidebar_split"></div>
-            <div class="sidebar-bottom-section" id="right_sidebar_bottom">
-                <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Lower Right Sidebar" data-content="rightsidebarbottomcontent" role="tablist" id="rightsidebarbottomcollection">
-                </ul>
-                <div class="tab-content" id="rightsidebarbottomcontent">
-                </div>
+            <div class="sui-popover sui_popover_model" id="popover_generate_center">
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doGenerate()">Generate</div>
+                <div class="sui_popover_model_button translate" id="generate_forever_button" onclick="toggleGenerateForever()">Generate Forever</div>
+                <div class="sui_popover_model_button translate" id="generate_previews_button" onclick="toggleGeneratePreviews()">Generate Previews</div>
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt()">Interrupt Current Session</div>
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt(true)">Interrupt All Sessions</div>
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterruptAndGen()" title="Alt+Click the Generate button to do this">Interrupt And Generate</div>
+                <div class="sui_popover_model_button translate" onclick="showPromptTokenizen('alt_prompt_textbox')">Show Prompt Tokenization</div>
+                <div class="sui_popover_model_button translate" style="display:none" id="clear_selected_tool_button" onclick="disableSelectedTool()">Clear Selected Tool</div>
+            </div>
+            <div class="sui-popover sui_popover_model" id="popover_generate">
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doGenerate()">Generate</div>
+                <div class="sui_popover_model_button translate" id="generate_forever_button" onclick="toggleGenerateForever()">Generate Forever</div>
+                <div class="sui_popover_model_button translate" id="generate_previews_button" onclick="toggleGeneratePreviews()">Generate Previews</div>
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterruptAndGen()" title="Alt+Click the Generate button to do this">Interrupt And Generate</div>
+            </div>
+            <div class="sui-popover sui_popover_model" id="popover_interrupt">
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt()">Interrupt Current Session</div>
+                <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt(true)">Interrupt All Sessions</div>
             </div>
         </div>
-             
-        <!-- POPOVER MENUS -->
-        <div class="sui-popover sui_popover_model" id="popover_generate_center">
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doGenerate()">Generate</div>
-            <div class="sui_popover_model_button translate" id="generate_forever_button" onclick="toggleGenerateForever()">Generate Forever</div>
-            <div class="sui_popover_model_button translate" id="generate_previews_button" onclick="toggleGeneratePreviews()">Generate Previews</div>
+        <div id="quicktools-button" class="model-block-menu-button t2i-area-quicktools translate" onclick="doPopover('quicktools')">Quick Tools &#x2B9F;</div>
+        <div class="sui-popover sui_popover_model" id="popover_quicktools">
+            <div class="sui_popover_model_button translate" onclick="genTabLayout.resetLayout()">Reset Page Layout</div>
+            <div class="sui_popover_model_button translate" onclick="refreshParameterValues(true)">Reload Parameter Values</div>
+            <div class="sui_popover_model_button translate" onclick="resetParamsToDefault()">Reset Params to Default</div>
+            <div class="sui_popover_model_button translate" onclick="openEmptyEditor()">Open Empty Image Editor</div>
             <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt()">Interrupt Current Session</div>
             <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt(true)">Interrupt All Sessions</div>
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterruptAndGen()" title="Alt+Click the Generate button to do this">Interrupt And Generate</div>
-            <div class="sui_popover_model_button translate" onclick="showPromptTokenizen('alt_prompt_textbox')">Show Prompt Tokenization</div>
-            <div class="sui_popover_model_button translate" style="display:none" id="clear_selected_tool_button" onclick="disableSelectedTool()">Clear Selected Tool</div>
-        </div>
-        <div class="sui-popover sui_popover_model" id="popover_generate">
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doGenerate()">Generate</div>
-            <div class="sui_popover_model_button translate" id="generate_forever_button" onclick="toggleGenerateForever()">Generate Forever</div>
-            <div class="sui_popover_model_button translate" id="generate_previews_button" onclick="toggleGeneratePreviews()">Generate Previews</div>
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterruptAndGen()" title="Alt+Click the Generate button to do this">Interrupt And Generate</div>
-        </div>
-        <div class="sui-popover sui_popover_model" id="popover_interrupt">
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt()">Interrupt Current Session</div>
-            <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt(true)">Interrupt All Sessions</div>
+            <div class="sui_popover_model_button translate" onclick="setCurrentImage(null)">Reshow Welcome Message</div>
+            <div class="sui_popover_model_button translate" onclick="hideUnalteredParameters()">Hide Unaltered Parameters</div>
         </div>
     </div>
-    
-    <div id="quicktools-button" class="model-block-menu-button t2i-area-quicktools translate" onclick="doPopover('quicktools')">Quick Tools &#x2B9F;</div>
-    <div class="sui-popover sui_popover_model" id="popover_quicktools">
-        <div class="sui_popover_model_button translate" onclick="genTabLayout.resetLayout()">Reset Page Layout</div>
-        <div class="sui_popover_model_button translate" onclick="refreshParameterValues(true)">Reload Parameter Values</div>
-        <div class="sui_popover_model_button translate" onclick="resetParamsToDefault()">Reset Params to Default</div>
-        <div class="sui_popover_model_button translate" onclick="openEmptyEditor()">Open Empty Image Editor</div>
-        <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt()">Interrupt Current Session</div>
-        <div class="sui_popover_model_button translate" onclick="mainGenHandler.doInterrupt(true)">Interrupt All Sessions</div>
-        <div class="sui_popover_model_button translate" onclick="setCurrentImage(null)">Reshow Welcome Message</div>
-        <div class="sui_popover_model_button translate" onclick="hideUnalteredParameters()">Hide Unaltered Parameters</div>
-    </div>
 </div>
-
-<!-- HORIZONTAL SPLIT BAR (BOTTOM) -->
-<div class="t2i-mid-split-bar splitter-bar" id="t2i-mid-split-bar">
-    <div class="t2i-split-quickbutton t2i-mid-split-quickbutton" id="t2i-mid-split-quickbutton">&#x290B;</div>
-</div>
-
-<!-- BOTTOM BAR -->
+<div class="t2i-mid-split-bar splitter-bar" id="t2i-mid-split-bar"><div class="t2i-split-quickbutton t2i-mid-split-quickbutton" id="t2i-mid-split-quickbutton">&#x290B;</div></div>
 <div class="t2i-bottom-bar" id="t2i_bottom_bar" style="line-height:1.5">
     <ul class="nav nav-tabs swarm-gen-tab-subnav" data-title="Bottom Bar" data-content="t2i_bottom_bar_content" role="tablist" id="bottombartabcollection">
         <li class="nav-item" role="presentation">

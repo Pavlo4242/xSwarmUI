@@ -1,0 +1,68 @@
+<!-- LoRA Playground Tab -->
+<!-- Save as: src/Extensions/LoRAPlayground/Tabs/LoRA Playground.html -->
+
+<div class="lora-playground-container">
+    <!-- Left Sidebar - LoRA List -->
+    <div class="lora-playground-left" id="lora_playground_loras">
+        <div class="lora-playground-header">
+            <h3>LoRAs</h3>
+        </div>
+        <div class="lora-playground-lora-list" id="lora_list_container">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Center - Controls and Image -->
+    <div class="lora-playground-center">
+        <!-- Top Controls -->
+        <div class="lora-playground-controls">
+            <div class="lora-playground-control-row">
+                <label>Prompt:</label>
+                <textarea id="lora_playground_prompt" class="lora-playground-prompt" rows="2" placeholder="Type your prompt here..."></textarea>
+            </div>
+            
+            <div class="lora-playground-control-row lora-playground-control-split">
+                <div class="lora-playground-control-item">
+                    <label>Steps:</label>
+                    <input type="number" id="lora_playground_steps" value="20" min="1" max="150" class="lora-playground-number">
+                </div>
+                
+                <div class="lora-playground-control-item">
+                    <label>
+                        <input type="checkbox" id="lora_playground_gen_forever"> Generate Forever
+                    </label>
+                </div>
+                
+                <div class="lora-playground-control-item">
+                    <label>
+                        <input type="checkbox" id="lora_playground_gen_previews"> Generate Previews
+                    </label>
+                </div>
+            </div>
+
+            <div class="lora-playground-control-row">
+                <button class="lora-playground-generate-btn" id="lora_playground_generate">Generate</button>
+                <button class="lora-playground-interrupt-btn" id="lora_playground_interrupt">Interrupt</button>
+            </div>
+        </div>
+
+        <!-- Main Image Display -->
+        <div class="lora-playground-image-container" id="lora_playground_image_container">
+            <img id="lora_playground_current_image" style="display:none;">
+            <div class="lora-playground-placeholder" id="lora_playground_placeholder">
+                <p>Click Generate to create an image</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar - History -->
+    <div class="lora-playground-right" id="lora_playground_history">
+        <div class="lora-playground-header">
+            <h3>History</h3>
+            <button class="lora-playground-clear-btn" id="lora_playground_clear_history">Clear</button>
+        </div>
+        <div class="lora-playground-history-grid" id="lora_history_container">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+</div>

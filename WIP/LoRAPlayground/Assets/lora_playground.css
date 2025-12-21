@@ -1,0 +1,318 @@
+/* LoRA Playground Styles */
+/* Save as: src/Extensions/LoRAPlayground/Assets/lora_playground.css */
+
+.lora-playground-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background-color: var(--background);
+    overflow: hidden;
+}
+
+/* Left Sidebar - LoRA List */
+.lora-playground-left {
+    width: 280px;
+    min-width: 280px;
+    border-right: 1px solid var(--light-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lora-playground-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--light-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lora-playground-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.1rem;
+}
+
+.lora-playground-lora-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.lora-item {
+    background-color: var(--background-soft);
+    border: 1px solid var(--light-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.lora-item-active {
+    background-color: var(--background-gray);
+    border-color: var(--emphasis);
+}
+
+.lora-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.lora-checkbox {
+    cursor: pointer;
+}
+
+.lora-name {
+    flex: 1;
+    color: var(--text);
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lora-weight-control {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.lora-weight-slider {
+    flex: 1;
+}
+
+.lora-weight-number {
+    width: 4rem;
+    padding: 0.25rem;
+    border-radius: 0.3rem;
+    background-color: var(--background);
+    border: 1px solid var(--shadow);
+    color: var(--text);
+    text-align: center;
+}
+
+.lora-usage-count {
+    font-size: 0.75rem;
+    color: var(--text-soft);
+    text-align: right;
+    margin-top: 0.25rem;
+}
+
+/* Center - Controls and Image */
+.lora-playground-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lora-playground-controls {
+    padding: 1rem;
+    border-bottom: 1px solid var(--light-border);
+    background-color: var(--background-soft);
+}
+
+.lora-playground-control-row {
+    margin-bottom: 0.75rem;
+}
+
+.lora-playground-control-row:last-child {
+    margin-bottom: 0;
+}
+
+.lora-playground-control-row label {
+    display: block;
+    color: var(--text);
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.lora-playground-prompt {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 0.3rem;
+    background-color: var(--background);
+    border: 1px solid var(--shadow);
+    color: var(--text);
+    resize: vertical;
+    font-family: inherit;
+}
+
+.lora-playground-control-split {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.lora-playground-control-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.lora-playground-control-item label {
+    margin: 0;
+    font-weight: normal;
+}
+
+.lora-playground-number {
+    width: 5rem;
+    padding: 0.5rem;
+    border-radius: 0.3rem;
+    background-color: var(--background);
+    border: 1px solid var(--shadow);
+    color: var(--text);
+}
+
+.lora-playground-generate-btn,
+.lora-playground-interrupt-btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    border: 1px solid;
+}
+
+.lora-playground-generate-btn {
+    background-color: var(--emphasis);
+    color: var(--emphasis-text);
+    border-color: var(--emphasis);
+}
+
+.lora-playground-generate-btn:hover {
+    background-color: color-mix(in srgb, var(--emphasis) 80%, white);
+}
+
+.lora-playground-interrupt-btn {
+    background-color: var(--danger-button-background);
+    color: var(--danger-button-foreground);
+    border-color: var(--danger-button-border);
+}
+
+.lora-playground-interrupt-btn:hover {
+    background-color: var(--danger-button-background-hover);
+}
+
+.lora-playground-image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--background);
+    overflow: auto;
+    padding: 1rem;
+}
+
+.lora-playground-image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.lora-playground-placeholder {
+    color: var(--text-soft);
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+/* Right Sidebar - History */
+.lora-playground-right {
+    width: 200px;
+    min-width: 200px;
+    border-left: 1px solid var(--light-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lora-playground-clear-btn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    border: 1px solid var(--button-border);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.lora-playground-clear-btn:hover {
+    background-color: var(--button-background-hover);
+}
+
+.lora-playground-history-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    align-content: start;
+}
+
+.lora-history-item {
+    cursor: pointer;
+    border: 2px solid var(--light-border);
+    border-radius: 0.3rem;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.lora-history-item:hover {
+    border-color: var(--emphasis);
+    transform: scale(1.05);
+}
+
+.lora-history-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.lora-history-empty {
+    color: var(--text-soft);
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .lora-playground-left {
+        width: 220px;
+        min-width: 220px;
+    }
+    
+    .lora-playground-right {
+        width: 160px;
+        min-width: 160px;
+    }
+}
+
+@media (max-width: 768px) {
+    .lora-playground-container {
+        flex-direction: column;
+    }
+    
+    .lora-playground-left,
+    .lora-playground-right {
+        width: 100%;
+        min-width: unset;
+        border: none;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .lora-playground-lora-list,
+    .lora-playground-history-grid {
+        max-height: 200px;
+    }
+    
+    .lora-playground-control-split {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

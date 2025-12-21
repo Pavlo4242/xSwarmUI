@@ -1,0 +1,163 @@
+/* LoRA Manager Tab Styles */
+/* Save as: src/Extensions/LoRAManager/Assets/lora_manager.css */
+
+.lora-manager-container {
+    padding: 1rem;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.lora-manager-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--light-border);
+}
+
+.lora-manager-header h2 {
+    margin: 0;
+    flex-grow: 1;
+    color: var(--text);
+}
+
+.lora-manager-stats {
+    color: var(--text-soft);
+    font-size: 0.9rem;
+}
+
+.lora-manager-help {
+    background-color: var(--background-soft);
+    border: 1px solid var(--light-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    color: var(--text-soft);
+    font-size: 0.85rem;
+}
+
+.lora-manager-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-soft);
+}
+
+.lora-manager-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.lora-card {
+    background-color: var(--background-gray);
+    border: 2px solid var(--light-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.lora-card-enabled {
+    border-color: var(--emphasis);
+    opacity: 1;
+}
+
+.lora-card-disabled {
+    opacity: 0.6;
+}
+
+.lora-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 0.75rem;
+}
+
+.lora-card-title {
+    font-weight: bold;
+    color: var(--text);
+    flex: 1;
+    word-break: break-word;
+}
+
+.lora-toggle-btn {
+    background-color: var(--button-background);
+    border: 1px solid var(--button-border);
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.lora-toggle-btn:hover {
+    background-color: var(--button-background-hover);
+}
+
+.lora-toggle-btn.enabled {
+    background-color: var(--emphasis);
+    color: var(--emphasis-text);
+}
+
+.lora-card-weight {
+    margin-bottom: 0.75rem;
+}
+
+.lora-card-weight label {
+    display: block;
+    color: var(--text);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.lora-weight-slider {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.lora-weight-number {
+    width: 4rem;
+    padding: 0.25rem;
+    border-radius: 0.3rem;
+    background-color: var(--background-soft);
+    border: 1px solid var(--shadow);
+    color: var(--text);
+    text-align: center;
+}
+
+.lora-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.lora-card-reorder {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+}
+
+.lora-manager-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1rem;
+    border-top: 1px solid var(--light-border);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .lora-manager-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .lora-manager-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .lora-manager-actions {
+        flex-direction: column;
+    }
+}

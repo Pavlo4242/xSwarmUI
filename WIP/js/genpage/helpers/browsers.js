@@ -109,8 +109,6 @@ class GenPageBrowserClass {
         this.checkIsSmall();
     }
 
-    
-
     /**
      * Checks if the window is small, setting isSmallWindow (mostly for mobile compat).
      */
@@ -781,86 +779,5 @@ class GenPageBrowserClass {
         if (this.builtEvent) {
             this.builtEvent();
         }
-    }
-}
-/**
- * Enhanced Browser Class with Dropdown Option
- * Add this to browsers.js after the GenPageBrowserClass definition
- */
-function enhanceBrowserWithDropdown(browser) {
-    // Only apply to LoRA and Embedding browsers
-    if (!browser.id || (!browser.id.includes('lora') && !browser.id.includes('embed'))) {
-        return;
-    }
-    
-    const container = browser.container;
-    if (!container) return;
-    
-    // Wait for the browser to be fully built
-    if (!browser.everLoaded) {
-        setTimeout(() => enhanceBrowserWithDropdown(browser), 500);
-        return;
-    }
-    
-    // Check if already enhanced
-    if (container.querySelector('.tree-view-toggle')) {
-        return;
-    }
-    
-    // Create view toggle button
-    const viewToggle = document.createElement('button');
-    viewToggle.className = 'basic-button tree-view-toggle';
-    viewToggle.textContent = '→ Dropdown';
-    viewToggle.title = 'Toggle between tree and dropdown view';
-    viewToggle.style.cssText = `
-        position: absolute;
-        top: 0.5rem;
-        right: 14rem;
-        z-index: 10;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        background-color: var(--button-background);
-        color: var(--button-text);
-        border: 1px solid var(--button-border);
-        border-radius: 0.3rem;
-        cursor: pointer;
-    `;
-    
-    let isTreeView = localStorage.getItem(`browser_${browser.id}_viewmode`) !== 'dropdown';
-    
-    viewToggle.onclick = () => {
-        isTreeView = !isTreeView;
-        localStorage.setItem(`browser_${browser.id}_viewmode`, isTreeView ? 'tree' : 'dropdown');
-        applyViewMode();
-    };
-    
-    function applyViewMode() {
-        const treeContainer = container.querySelector('.browser-folder-tree-container');
-        const splitter = container.querySelector('.browser-folder-tree-splitter');
-        
-        if (!treeContainer || !splitter) return;
-        
-        if (isTreeView) {
-            viewToggle.textContent = '→ Dropdown';
-            treeContainer.style.display = 'block';
-            splitter.style.display = 'block';
-            treeContainer.style.maxHeight = 'none';
-            treeContainer.style.height = '100%';
-        } else {
-            viewToggle.textContent = '→ Tree';
-            treeContainer.style.display = 'block';
-            splitter.style.display = 'none';
-            treeContainer.style.maxHeight = '200px';
-            treeContainer.style.height = '200px';
-            treeContainer.style.overflowY = 'auto';
-        }
-    }
-    
-    // Insert toggle button
-    const headerBar = container.querySelector('.browser-header-bar');
-    if (headerBar) {
-        headerBar.style.position = 'relative';
-        headerBar.appendChild(viewToggle);
-        applyViewMode();
     }
 }

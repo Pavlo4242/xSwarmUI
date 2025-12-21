@@ -693,28 +693,7 @@ function genpageLoad() {
             versionDisp.style.display = '';
         }
     });
-    
-    // EXPOSE PREVIEW FUNCTION
-    window.requestGenPreview = function() {
-        if (isGeneratingPreviews) {
-            return;
-        }
-        // Safety check to ensure we don't get stuck indefinitely
-        setTimeout(() => { if(isGeneratingPreviews) isGeneratingPreviews = false; }, 2000);
-        
-        if (typeof generatePreviewImage === 'function') {
-             generatePreviewImage();
-        }
-    };
-    
-    window.imageEditor = new ImageEditor(
-        getRequiredElementById('image_editor_input'), 
-        true, 
-        true, 
-        () => genTabLayout.reapplyPositions(), 
-        () => window.requestGenPreview()
-    );
-	
+    window.imageEditor = new ImageEditor(getRequiredElementById('image_editor_input'), true, true, () => genTabLayout.reapplyPositions(), () => needsNewPreview());
     let editorSizebar = getRequiredElementById('image_editor_sizebar');
     window.imageEditor.onActivate = () => {
         editorSizebar.style.display = '';
@@ -722,752 +701,346 @@ function genpageLoad() {
     window.imageEditor.onDeactivate = () => {
         editorSizebar.style.display = 'none';
     };
-    
     window.imageEditor.tools['options'].optionButtons = [
-        ...window.imageEditor.tools['options'].optionButtons,
-        { 
-            key: 'Store Current Image To History', 
-            action: () => {
+        ... window.imageEditor.tools['options'].optionButtons,
+        { key: 'Store Current Image To History', action: () => {
+            let img = window.imageEditor.getFinalImageData();
+            storeImageToHistoryWithCurrentParams(img);
+        }},
+        { key: 'Store Full Canvas To History', action: () => {
+            let img = window.imageEditor.getMaximumImageData();
+            storeImageToHistoryWithCurrentParams(img);
+        }},
+        { key: 'Auto Segment Image (SAM2)', action: () => {
+            if (!currentBackendFeatureSet.includes('sam2')) {
+                $('#sam2_installer').modal('show');
+            }
+            else {
                 let img = window.imageEditor.getFinalImageData();
-                storeImageToHistoryWithCurrentParams(img);
+                let genData = getGenInput();
+                genData['controlnetimageinput'] = img;
+                genData['controlnetstrength'] = 1;
+                genData['controlnetpreprocessor'] = 'Segment Anything 2 Global Autosegment base_plus';
+                genData['images'] = 1;
+                genData['prompt'] = '';
+                delete genData['batchsize'];
+                genData['donotsave'] = true;
+                genData['controlnetpreviewonly'] = true;
+                makeWSRequestT2I('GenerateText2ImageWS', genData, data => {
+                    if (!data.image) {
+                        return;
+                    }
+                    let newImg = new Image();
+                    newImg.onload = () => {
+                        imageEditor.addImageLayer(newImg);
+                    };
+                    newImg.src = data.image;
+                });
             }
-        },
-        { 
-            key: 'Store Full Canvas To History', 
-            action: () => {
-                let img = window.imageEditor.getMaximumImageData();
-                storeImageToHistoryWithCurrentParams(img);
-            }
-        },
-        { 
-            key: 'Auto Segment Image (SAM2)', 
-            action: () => {
-                if (!currentBackendFeatureSet.includes('sam2')) {
-                    $('#sam2_installer').modal('show');
-                }
-                else {
-                    let img = window.imageEditor.getFinalImageData();
-                    let genData = getGenInput();
-                    genData['controlnetimageinput'] = img;
-                    genData['controlnetstrength'] = 1;
-                    genData['controlnetpreprocessor'] = 'Segment Anything 2 Global Autosegment base_plus';
-                    genData['images'] = 1;
-                    genData['prompt'] = '';
-                    delete genData['batchsize'];
-                    genData['donotsave'] = true;
-                    genData['controlnetpreviewonly'] = true;
-                    makeWSRequestT2I('GenerateText2ImageWS', genData, data => {
-                        if (!data.image) {
-                            return;
-                        }
-                        let newImg = new Image();
-                        newImg.onload = () => {
-                            imageEditor.addImageLayer(newImg);
-                        };
-                        newImg.src = data.image;
-                    });
-                }
-            }
-        }
+        }}
     ];
-    
-    // Initialize Layout Engine first
-
-    
-    // Prepare Hash Helper
+    genTabLayout.init();
+    reviseStatusBar();
     loadHashHelper();
-    
     getSession(() => {
         imageHistoryBrowser.navigate('');
         initialModelListLoad();
-        
         genericRequest('ListT2IParams', {}, data => {
-            // Process all the model and parameter data
             modelsHelpers.loadClassesFromServer(data.models, data.model_compat_classes, data.model_classes);
             updateAllModels(data.models);
             wildcardHelpers.newWildcardList(data.wildcards);
             [rawGenParamTypesFromServer, rawGroupMapFromServer] = buildParameterList(data.list, data.groups);
             gen_param_types = rawGenParamTypesFromServer;
-            
-            // Initialize parameter config
             paramConfig.preInit();
             paramConfig.applyParamEdits(data.param_edits);
-            
-            // Auto-persist parameters
+            paramConfig.loadUserParamConfigTab();
             autoRepersistParams();
-            setInterval(autoRepersistParams, 60 * 60 * 1000);
-            
-            // Generate inputs and tools FIRST
+            setInterval(autoRepersistParams, 60 * 60 * 1000); // Re-persist again hourly if UI left over
             genInputs();
             genToolsList();
-            
-            // THEN load user param config tab after UI is built
-            // This must come after genInputs() because it references the generated UI
-            if (typeof paramConfig.loadUserParamConfigTab === 'function') {
-                paramConfig.loadUserParamConfigTab();
-            }
-            
-			genTabLayout.init();
-            // Initial status bar update
             reviseStatusBar();
-            
-            // Load advanced options state
             getRequiredElementById('advanced_options_checkbox').checked = localStorage.getItem('display_advanced') == 'true';
             toggle_advanced();
             setCurrentModel();
-            
-            // Load user data and settings
             loadUserData(() => {
                 if (permissions.hasPermission('view_backends_list')) {
                     loadBackendTypesMenu();
                 }
                 selectInitialPresetList();
             });
-            
-            // Run all session ready callbacks
             for (let callback of sessionReadyCallbacks) {
                 callback();
             }
-            
-            // Show welcome message and set title
             automaticWelcomeMessage();
             autoTitle();
             swarmHasLoaded = true;
-
-            // Force layout refresh now that content exists
-            genTabLayout.reapplyPositions(); 
-            
-            // Start status polling
-            reviseStatusInterval = setInterval(reviseStatusBar, 2000);
         });
-        
-        // Start resource monitoring
+        reviseStatusInterval = setInterval(reviseStatusBar, 2000);
         window.resLoopInterval = setInterval(serverResourceLoop, 1000);
     });
 }
 
-
-
-class EnhancedLoRAManager {
+class SwarmLoraManager {
     constructor() {
-        this.frequencyStats = JSON.parse(localStorage.getItem('lora_frequency_stats') || '{}');
-        this.disabledLoras = [];
-        this.containerId = 'enhanced_lora_container';
-        this.hasInit = false;
-        this.currentSearch = '';
-    }
-
-    // Helper to safely escape HTML
-    escapeHtml(text) {
-        if (typeof escapeHtml === 'function') {
-            return escapeHtml(text);
+        this.favorites = JSON.parse(localStorage.getItem('lora_favorites') || '[]');
+        this.showFavsOnly = false;
+        
+        // Use postParamBuildSteps to ensure we run AFTER the UI is generated
+        if (typeof postParamBuildSteps !== 'undefined') {
+            postParamBuildSteps.push(() => this.init());
+        } else {
+            // Fallback for older versions
+            setTimeout(() => this.init(), 3000);
         }
-        let div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Helper to trim directory path from LoRA name
-    trimLoraName(name) {
-        if (name.includes('/')) {
-            name = name.substring(name.lastIndexOf('/') + 1);
-        }
-        if (name.includes('\\')) {
-            name = name.substring(name.lastIndexOf('\\') + 1);
-        }
-        if (name.endsWith('.safetensors')) {
-            name = name.substring(0, name.length - '.safetensors'.length);
-        }
-        if (name.endsWith('.ckpt')) {
-            name = name.substring(0, name.length - '.ckpt'.length);
-        }
-        return name;
     }
 
     init() {
-        if (this.hasInit) return;
-        this.hasInit = true;
+        console.log("SwarmLoraManager: Initializing...");
+        const loraContent = document.getElementById('input_group_content_loras');
         
-        this.hookLoraHelper();
-        this.initUI();
-    }
-
-    hookLoraHelper() {
-        if (!window.loraHelper) {
-            console.warn('LoRA Helper not ready, will retry...');
-            setTimeout(() => this.hookLoraHelper(), 100);
+        if (!loraContent) {
+            console.log("SwarmLoraManager: LoRA group not found. Retrying in 1s...");
+            setTimeout(() => this.init(), 1000);
             return;
         }
 
-        const originalSelect = loraHelper.selectLora.bind(loraHelper);
-        loraHelper.selectLora = (lora) => {
-            let name = (typeof lora === 'string') ? lora : lora.name;
-            if (name) {
-                let isSelected = loraHelper.selected.find(l => l.name == name);
-                if (!isSelected) { 
-                    this.incrementUsage(name); 
-                }
+        // 1. Hide the original inputs (Dropdown & Weights)
+        // We iterate children to hide them safely without deleting them
+        Array.from(loraContent.children).forEach(child => {
+            // check if it's our manager to avoid double-hiding on re-runs
+            if (child.id !== 'swarm_lora_manager_ui') {
+                child.style.display = 'none';
             }
-            originalSelect(lora);
-            this.updateActiveTab();
-            this.updateFrequentTab(); 
-            this.updateLibraryTab(this.currentSearch);
-        };
+        });
 
-        const originalRebuild = loraHelper.rebuildUI.bind(loraHelper);
-        loraHelper.rebuildUI = () => {
-            originalRebuild();
-            this.updateActiveTab();
-            this.updateDisabledTab();
-            this.updateLibraryTab(this.currentSearch);
-        };
-    }
+        // 2. Prevent duplicate injection
+        if (document.getElementById('swarm_lora_manager_ui')) return;
 
-    incrementUsage(loraName) {
-        let clean = cleanModelName(loraName);
-        this.frequencyStats[clean] = (this.frequencyStats[clean] || 0) + 1;
-        localStorage.setItem('lora_frequency_stats', JSON.stringify(this.frequencyStats));
-    }
+        // 3. Inject CSS
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .slm-tabs { display: flex; background: var(--bg-secondary); border-radius: 6px; overflow: hidden; margin-bottom: 8px; border: 1px solid var(--border-color); }
+            .slm-tab { flex: 1; text-align: center; padding: 6px; cursor: pointer; font-size: 0.9rem; user-select: none; }
+            .slm-tab:hover { background: rgba(255,255,255,0.1); }
+            .slm-tab.active { background: var(--color-primary); color: white; font-weight: bold; }
+            
+            .slm-view { display: none; }
+            .slm-view.active { display: block; }
 
-    getSortedFrequentLoras() {
-        return Object.entries(this.frequencyStats)
-            .sort(([, a], [, b]) => b - a)
-            .map(([name]) => name);
-    }
-
-    initUI() {
-        let container = document.getElementById(this.containerId);
-        if (!container) {
-            console.error('Enhanced LoRA container not found');
-            return;
-        }
-
-        const styles = `
-            .lora-tab-system { 
-                border: 1px solid var(--border-color); 
-                border-radius: 8px; 
-                overflow: hidden; 
-                display: flex; 
-                flex-direction: column; 
-                background: var(--bg-secondary);
-            }
-            .lora-tabs { 
-                display: flex; 
-                background: var(--bg-secondary); 
-                border-bottom: 1px solid var(--border-color); 
-                flex-shrink: 0; 
-            }
-            .lora-tab-btn { 
-                flex: 1; 
-                padding: 8px; 
-                border: none; 
-                background: transparent; 
-                color: var(--text-color); 
-                cursor: pointer; 
-                border-bottom: 3px solid transparent; 
-                transition: all 0.2s; 
-                font-size: 0.85rem; 
-            }
-            .lora-tab-btn:hover { background: rgba(255,255,255,0.05); }
-            .lora-tab-btn.active { 
-                border-bottom-color: var(--color-primary); 
-                font-weight: bold; 
-                background: var(--bg-color);
-            }
+            .slm-toolbar { display: flex; gap: 5px; margin-bottom: 8px; }
+            .slm-search { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); padding: 4px; border-radius: 4px; }
             
-            .lora-tab-content { 
-                height: 400px; 
-                width: 100%;
-                display: none; /* Hidden by default */
-                flex-direction: column;
-                box-sizing: border-box;
-                background: var(--bg-color);
-            }
+            .slm-list { max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; background: rgba(0,0,0,0.1); }
+            .slm-item { display: flex; align-items: center; padding: 4px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+            .slm-item:hover { background: var(--bg-secondary); }
             
-            /* Strict visibility control */
-            .lora-tab-content.active { display: flex !important; }
+            .slm-star { cursor: pointer; font-size: 1.2rem; line-height: 1; margin-right: 8px; color: var(--text-muted); }
+            .slm-star.fav { color: gold; }
             
-            /* Scrollable areas inside tabs */
-            .lora-scroll-area {
-                padding: 10px;
-                overflow-y: auto;
-                overflow-x: hidden;
-                flex-grow: 1;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* Container for chips */
-            .lora-chip-container {
-                display: flex;
-                flex-wrap: wrap;
-                align-content: flex-start;
-                gap: 6px;
-                width: 100%;
-            }
-            
-            .lora-chip { 
-                display: block;
-                background: var(--bg-secondary); 
-                border: 1px solid var(--border-color); 
-                padding: 5px 10px; 
-                border-radius: 6px; 
-                cursor: pointer; 
-                font-size: 0.85rem; 
-                transition: all 0.2s;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                max-width: 100%;
-                user-select: none;
-            }
-            
-            .lora-chip:hover { 
-                border-color: var(--color-primary); 
-                transform: translateY(-1px); 
-            }
-
-            /* Status Colors for Library */
-            .lora-chip.is-active {
-                border-color: #4caf50;
-                background: rgba(76, 175, 80, 0.1);
-                color: #4caf50;
-            }
-            .lora-chip.is-disabled {
-                border-color: #f44336;
-                background: rgba(244, 67, 54, 0.1);
-                opacity: 0.8;
-                text-decoration: line-through;
-            }
-            
-            /* Search Bar Pinned to Top */
-            .lora-search-wrapper {
-                padding: 10px;
-                background: var(--bg-secondary);
-                border-bottom: 1px solid var(--border-color);
-                flex-shrink: 0;
-            }
-            
-            .lora-search-input { 
-                width: 100%; 
-                padding: 8px; 
-                border-radius: 4px; 
-                border: 1px solid var(--border-color); 
-                background: var(--input-bg); 
-                color: var(--text-color);
-                box-sizing: border-box;
-            }
-            
-            .lora-ctrl-btn { 
-                background: var(--bg-secondary); 
-                border: 1px solid var(--border-color); 
-                color: var(--text-color); 
-                cursor: pointer; 
-                padding: 2px 8px; 
-                margin: 0 2px; 
-                border-radius: 4px; 
-                font-weight: bold; 
-                font-size: 0.85rem;
-            }
-            .lora-ctrl-btn:hover { background: var(--color-primary); color: white; }
-            
-            .lora-disabled-item { 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                background: rgba(0,0,0,0.2); 
-                border: 1px dashed var(--border-color); 
-                padding: 8px; 
-                margin-bottom: 6px; 
-                border-radius: 4px;
-                width: 100%;
-                box-sizing: border-box;
-            }
-            
-            .lora-empty-state {
-                text-align: center; 
-                color: var(--text-muted); 
-                font-style: italic; 
-                padding: 30px;
-                width: 100%;
-            }
-            
-            .enhanced-lora-row {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 6px;
-                margin-bottom: 6px;
-                background: var(--bg-secondary);
-                border-radius: 4px;
-                width: 100%;
-                box-sizing: border-box;
-            }
+            .slm-active-row { background: var(--bg-secondary); border: 1px solid var(--border-color); margin-bottom: 4px; padding: 6px; border-radius: 4px; }
+            .slm-row-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold; font-size: 0.8rem; }
+            .slm-slider-wrap { display: flex; align-items: center; gap: 5px; }
+            .slm-slider { flex: 1; height: 6px; }
+            .slm-num { width: 45px; text-align: right; font-size: 0.8rem; padding: 2px; }
+            .slm-btn-remove { color: #ff5555; cursor: pointer; font-weight: bold; }
         `;
-        
-        if (!document.getElementById('enhanced-lora-styles')) {
-            const styleEl = document.createElement('style');
-            styleEl.id = 'enhanced-lora-styles';
-            styleEl.innerHTML = styles;
-            document.head.appendChild(styleEl);
-        }
+        document.head.appendChild(style);
 
+        // 4. Build UI
+        const container = document.createElement('div');
+        container.id = 'swarm_lora_manager_ui';
         container.innerHTML = `
-            <div class="lora-tab-system">
-                <div class="lora-tabs">
-                    <button class="lora-tab-btn active" data-target="lora-tab-active">Active</button>
-                    <button class="lora-tab-btn" data-target="lora-tab-disabled">Disabled</button>
-                    <button class="lora-tab-btn" data-target="lora-tab-frequent">Frequent</button>
-                    <button class="lora-tab-btn" data-target="lora-tab-library">Library</button>
-                </div>
-                
-                <div id="lora-tab-active" class="lora-tab-content active">
-                    <div class="lora-scroll-area">
-                        <div id="lora-active-list"></div>
-                        <div id="lora-active-placeholder" class="lora-empty-state">
-                            No LoRAs selected. Go to the Library tab to add some!
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="lora-tab-disabled" class="lora-tab-content">
-                    <div class="lora-scroll-area">
-                        <div id="lora-disabled-list"></div>
-                        <div id="lora-disabled-placeholder" class="lora-empty-state">No disabled LoRAs.</div>
-                    </div>
-                </div>
+            <div class="slm-tabs">
+                <div class="slm-tab active" onclick="swarmLoraManager.setTab('selected')">Selected (<span id="slm_count">0</span>)</div>
+                <div class="slm-tab" onclick="swarmLoraManager.setTab('library')">Library</div>
+            </div>
 
-                <div id="lora-tab-frequent" class="lora-tab-content">
-                    <div class="lora-scroll-area">
-                        <div id="lora-frequent-list" class="lora-chip-container"></div>
-                        <div id="lora-frequent-placeholder" class="lora-empty-state" style="display:none">No usage history yet.</div>
-                    </div>
-                </div>
-                
-                <div id="lora-tab-library" class="lora-tab-content">
-                    <div class="lora-search-wrapper">
-                        <input type="text" class="lora-search-input" placeholder="Search available LoRAs..." id="lora-tab-search-bar">
-                    </div>
-                    <div class="lora-scroll-area">
-                        <div id="lora-library-list" class="lora-chip-container"></div>
-                    </div>
+            <!-- VIEW: SELECTED -->
+            <div id="slm_view_selected" class="slm-view active">
+                <div id="slm_selected_list"></div>
+                <div id="slm_empty" style="text-align:center; padding:15px; font-style:italic; opacity:0.6;">
+                    No LoRAs selected. Check the Library tab.
                 </div>
             </div>
+
+            <!-- VIEW: LIBRARY -->
+            <div id="slm_view_library" class="slm-view">
+                <div class="slm-toolbar">
+                    <input type="text" id="slm_search" class="slm-search" placeholder="Search..." oninput="swarmLoraManager.renderLibrary()">
+                    <label style="display:flex; align-items:center; font-size:0.8rem; cursor:pointer; gap:4px; user-select:none;">
+                        <input type="checkbox" id="slm_fav_check" onchange="swarmLoraManager.toggleFavFilter()"> Favs
+                    </label>
+                </div>
+                <div id="slm_library_list" class="slm-list">Loading...</div>
+            </div>
         `;
+        loraGroupContent.appendChild(container);
 
-        this.setupTabs(container);
-        this.setupSearch();
-        this.updateActiveTab();
-        this.updateDisabledTab();
-        this.updateFrequentTab();
-        setTimeout(() => this.updateLibraryTab(), 500);
-    }
-
-    setupTabs(wrapper) {
-        let buttons = wrapper.querySelectorAll('.lora-tab-btn');
-        let panes = wrapper.querySelectorAll('.lora-tab-content');
-
-        buttons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Deactivate all
-                buttons.forEach(b => b.classList.remove('active'));
-                panes.forEach(p => p.classList.remove('active'));
-                
-                // Activate clicked
-                btn.classList.add('active');
-                let target = document.getElementById(btn.dataset.target);
-                if (target) target.classList.add('active');
-                
-                if(btn.dataset.target === 'lora-tab-library') this.updateLibraryTab(this.currentSearch);
-            });
-        });
-    }
-
-    updateActiveTab() {
-        let container = document.getElementById('lora-active-list');
-        let placeholder = document.getElementById('lora-active-placeholder');
-        
-        if (!container || !placeholder) return;
-        
-        container.innerHTML = '';
-        
-        if (!loraHelper.selected || loraHelper.selected.length === 0) {
-            placeholder.style.display = 'block';
-            return;
+        // 5. Hook into Core Logic
+        // We override loraHelper.rebuildUI to make sure our UI updates when parameters change
+        if (window.loraHelper) {
+            const originalRebuild = loraHelper.rebuildUI.bind(loraHelper);
+            loraHelper.rebuildUI = () => {
+                originalRebuild(); // Let core update hidden params
+                this.renderSelected(); // Update our UI
+            };
         }
-        
-        placeholder.style.display = 'none';
-        
-        loraHelper.selected.forEach((loraObj, index) => {
-            let row = document.createElement('div');
-            row.className = 'enhanced-lora-row';
-            
-            // Name
-            let nameSpan = document.createElement('span');
-            nameSpan.style.cssText = 'flex: 1 1 auto; min-width: 100px; font-weight: bold; overflow: hidden; text-overflow: ellipsis;';
-            nameSpan.title = loraObj.name;
-            nameSpan.innerText = this.trimLoraName(cleanModelName(loraObj.name));
-            row.appendChild(nameSpan);
-            
-            // Weight Controls
-            let weightWrapper = document.createElement('span');
-            weightWrapper.style.cssText = 'display: flex; align-items: center; gap: 4px; flex-shrink: 0;';
-            
-            let minusBtn = document.createElement('button');
-            minusBtn.className = 'lora-ctrl-btn';
-            minusBtn.innerText = '-';
-            minusBtn.onclick = (e) => {
-                e.preventDefault();
-                loraObj.setWeight(Math.round((loraObj.weight - 0.1) * 100) / 100);
-                loraHelper.rebuildParams();
-                loraHelper.rebuildUI();
-                this.updateActiveTab();
-            };
-            
-            let weightInput = document.createElement('input');
-            weightInput.type = 'number';
-            weightInput.className = 'auto-number';
-            weightInput.style.cssText = 'width: 60px;';
-            weightInput.value = loraObj.weight;
-            weightInput.step = 0.1;
-            weightInput.onchange = () => {
-                loraObj.setWeight(parseFloat(weightInput.value));
-                loraHelper.rebuildParams();
-                loraHelper.rebuildUI();
-            };
-            
-            let plusBtn = document.createElement('button');
-            plusBtn.className = 'lora-ctrl-btn';
-            plusBtn.innerText = '+';
-            plusBtn.onclick = (e) => {
-                e.preventDefault();
-                loraObj.setWeight(Math.round((loraObj.weight + 0.1) * 100) / 100);
-                loraHelper.rebuildParams();
-                loraHelper.rebuildUI();
-                this.updateActiveTab();
-            };
-            
-            weightWrapper.appendChild(minusBtn);
-            weightWrapper.appendChild(weightInput);
-            weightWrapper.appendChild(plusBtn);
-            row.appendChild(weightWrapper);
-            
-            // Disable
-            let disableBtn = document.createElement('button');
-            disableBtn.className = 'lora-ctrl-btn';
-            disableBtn.innerHTML = '👁️';
-            disableBtn.title = 'Disable (Move to Disabled tab)';
-            disableBtn.onclick = (e) => {
-                e.preventDefault();
-                this.disabledLoras.push(loraObj);
-                loraHelper.selected.splice(index, 1);
-                loraHelper.rebuildUI();
-            };
-            row.appendChild(disableBtn);
-            
-            // Remove
-            let removeBtn = document.createElement('button');
-            removeBtn.className = 'lora-ctrl-btn';
-            removeBtn.innerHTML = '×';
-            removeBtn.title = 'Remove completely';
-            removeBtn.onclick = (e) => {
-                e.preventDefault();
-                loraHelper.selectLora(loraObj);
-            };
-            row.appendChild(removeBtn);
-            
-            container.appendChild(row);
-        });
+
+        // 6. Initial Render
+        this.renderLibrary();
+        this.renderSelected();
     }
 
-    updateDisabledTab() {
-        let container = document.getElementById('lora-disabled-list');
-        let placeholder = document.getElementById('lora-disabled-placeholder');
-        if (!container || !placeholder) return;
+    setTab(tab) {
+        document.querySelectorAll('.slm-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.slm-view').forEach(v => v.classList.remove('active'));
+        
+        // Find index based on text roughly or logic
+        const tabs = document.querySelectorAll('.slm-tab');
+        if (tab === 'selected') {
+            tabs[0].classList.add('active');
+            document.getElementById('slm_view_selected').classList.add('active');
+        } else {
+            tabs[1].classList.add('active');
+            document.getElementById('slm_view_library').classList.add('active');
+        }
+    }
 
-        container.innerHTML = '';
+    toggleFavFilter() {
+        this.showFavsOnly = document.getElementById('slm_fav_check').checked;
+        this.renderLibrary();
+    }
 
-        if (this.disabledLoras.length === 0) {
-            placeholder.style.display = 'block';
+    toggleStar(name) {
+        const idx = this.favorites.indexOf(name);
+        if (idx > -1) this.favorites.splice(idx, 1);
+        else this.favorites.push(name);
+        
+        localStorage.setItem('lora_favorites', JSON.stringify(this.favorites));
+        this.renderLibrary();
+    }
+
+    renderLibrary() {
+        const list = document.getElementById('slm_library_list');
+        const search = document.getElementById('slm_search').value.toLowerCase();
+        
+        if (!list) return;
+
+        // Fetch LoRAs from core maps
+        let loraNames = [];
+        if (typeof coreModelMap !== 'undefined' && coreModelMap['LoRA']) {
+            loraNames = coreModelMap['LoRA'];
+        } else if (typeof modelsHelpers !== 'undefined') {
+            loraNames = modelsHelpers.listModelNames('LoRA');
+        }
+
+        if (loraNames.length === 0) {
+            list.innerHTML = '<div style="padding:10px;">Loading LoRAs...</div>';
             return;
         }
 
-        placeholder.style.display = 'none';
-
-        this.disabledLoras.forEach((loraObj, index) => {
-            let div = document.createElement('div');
-            div.className = 'lora-disabled-item';
-
-            let info = document.createElement('div');
-            let trimmedName = this.trimLoraName(cleanModelName(loraObj.name));
-            info.innerHTML = `<strong title="${this.escapeHtml(loraObj.name)}">${this.escapeHtml(trimmedName)}</strong> <span style="font-size:0.85em; opacity:0.7">(${loraObj.weight})</span>`;
-            
-            let btnGroup = document.createElement('div');
-            
-            let enableBtn = document.createElement('button');
-            enableBtn.className = 'lora-ctrl-btn';
-            enableBtn.innerHTML = '👁️';
-            enableBtn.title = "Re-enable";
-            enableBtn.onclick = () => {
-                this.disabledLoras.splice(index, 1);
-                loraHelper.selected.push(loraObj);
-                loraHelper.rebuildUI();
-                document.querySelector('[data-target="lora-tab-active"]').click();
-            };
-
-            let delBtn = document.createElement('button');
-            delBtn.className = 'lora-ctrl-btn';
-            delBtn.innerHTML = '✖';
-            delBtn.title = "Remove";
-            delBtn.onclick = () => {
-                this.disabledLoras.splice(index, 1);
-                this.updateDisabledTab();
-                this.updateLibraryTab(this.currentSearch); // Update colors
-            };
-
-            btnGroup.appendChild(enableBtn);
-            btnGroup.appendChild(delBtn);
-            div.appendChild(info);
-            div.appendChild(btnGroup);
-            container.appendChild(div);
+        // Sort: Favorites first, then Alphabetical
+        loraNames.sort((a, b) => {
+            const cleanA = cleanModelName(a);
+            const cleanB = cleanModelName(b);
+            const isFavA = this.favorites.includes(cleanA);
+            const isFavB = this.favorites.includes(cleanB);
+            if (isFavA && !isFavB) return -1;
+            if (!isFavA && isFavB) return 1;
+            return cleanA.localeCompare(cleanB);
         });
-    }
 
-    updateFrequentTab() {
-        let container = document.getElementById('lora-frequent-list');
-        let placeholder = document.getElementById('lora-frequent-placeholder');
-        if (!container) return;
-
-        let sorted = this.getSortedFrequentLoras();
-        if (sorted.length === 0) {
-            container.innerHTML = '';
-            placeholder.style.display = 'block';
-            return;
-        }
-        
-        placeholder.style.display = 'none';
-        container.innerHTML = '';
-        
-        sorted.slice(0, 50).forEach(name => {
-            let chip = document.createElement('div');
-            chip.className = 'lora-chip';
-            let trimmedName = this.trimLoraName(name);
-            chip.title = `${this.escapeHtml(name)} - Used ${this.frequencyStats[name]} times`;
-            chip.innerHTML = `${this.escapeHtml(trimmedName)} <span style="opacity:0.6;font-size:0.8em">(${this.frequencyStats[name]})</span>`;
-            
-            chip.onclick = () => {
-                loraHelper.selectLora(name);
-                document.querySelector('[data-target="lora-tab-active"]').click();
-            };
-            container.appendChild(chip);
-        });
-    }
-
-    setupSearch() {
-        let searchBar = document.getElementById('lora-tab-search-bar');
-        if (searchBar) {
-            searchBar.addEventListener('input', (e) => {
-                this.currentSearch = e.target.value;
-                this.updateLibraryTab(this.currentSearch);
-            });
-        }
-    }
-
-    updateLibraryTab(filter = '') {
-        let container = document.getElementById('lora-library-list');
-        if (!container) return;
-        
-        let loraList = [];
-        if (typeof coreModelMap !== 'undefined') {
-            if (coreModelMap['LoRA']) {
-                loraList = coreModelMap['LoRA'];
-            } else {
-                let key = Object.keys(coreModelMap).find(k => k.toLowerCase().includes('lora'));
-                if (key) loraList = coreModelMap[key];
-            }
-        }
-
-        if (!loraList || loraList.length === 0) {
-            container.innerHTML = '<div class="lora-empty-state">Loading LoRAs...</div>';
-            return;
-        }
-
-        container.innerHTML = '';
-        let lcFilter = filter.toLowerCase();
+        let html = '';
         let count = 0;
-        
-        for (let lora of loraList) {
-            if (count > 100 && filter.length === 0) break;
-            
-            let name = (typeof lora === 'string') ? lora : lora.name || lora[0];
-            let clean = cleanModelName(name);
-            let trimmedName = this.trimLoraName(clean);
 
-            if (filter && !clean.toLowerCase().includes(lcFilter) && !trimmedName.toLowerCase().includes(lcFilter)) continue;
-
-            // Check Status
-            let isActive = loraHelper.selected.find(l => l.name == name);
-            let isDisabled = this.disabledLoras.find(l => l.name == name);
-
-            let chip = document.createElement('div');
-            chip.className = 'lora-chip';
-            if (isActive) chip.classList.add('is-active');
-            if (isDisabled) chip.classList.add('is-disabled');
+        for (const rawName of loraNames) {
+            const name = cleanModelName(rawName);
             
-            chip.title = this.escapeHtml(clean);
-            chip.innerText = trimmedName;
+            // Filter
+            if (this.showFavsOnly && !this.favorites.includes(name)) continue;
+            if (search && !name.toLowerCase().includes(search)) continue;
             
-            chip.onclick = () => {
-                if (isDisabled) {
-                    // If disabled, clicking re-enables it
-                    let idx = this.disabledLoras.findIndex(l => l.name == name);
-                    if (idx > -1) {
-                        let obj = this.disabledLoras[idx];
-                        this.disabledLoras.splice(idx, 1);
-                        loraHelper.selected.push(obj);
-                    }
-                } else if (isActive) {
-                    // If active, clicking focuses it (optional, currently just selects again which might toggle or do nothing)
-                     // Or we could remove it? standard behavior is usually toggle or add. 
-                     // loraHelper.selectLora usually toggles or adds.
-                    loraHelper.selectLora(name);
-                } else {
-                    // Add new
-                    loraHelper.selectLora(name);
-                }
-                
-                // Refresh UI
-                loraHelper.rebuildUI();
-                document.querySelector('[data-target="lora-tab-active"]').click();
-            };
-            container.appendChild(chip);
+            if (count > 200) break; // Render limit
+
+            const isFav = this.favorites.includes(name);
+            html += `
+                <div class="slm-item">
+                    <span class="slm-star ${isFav?'fav':''}" onclick="swarmLoraManager.toggleStar('${name}')">★</span>
+                    <span style="flex:1; cursor:pointer; overflow:hidden; text-overflow:ellipsis;" onclick="swarmLoraManager.select('${name}')" title="${name}">${name}</span>
+                    <button class="basic-button" style="font-size:0.7rem; padding:2px 6px;" onclick="swarmLoraManager.select('${name}')">Add</button>
+                </div>
+            `;
             count++;
         }
-        
-        if (count === 0 && filter) {
-            container.innerHTML = '<div class="lora-empty-state">No LoRAs found.</div>';
+
+        if (count === 0) html = '<div style="padding:10px; opacity:0.6;">No matches found.</div>';
+        list.innerHTML = html;
+    }
+
+    select(name) {
+        if (window.loraHelper) {
+            loraHelper.selectLora(name);
+            this.setTab('selected');
         }
+    }
+
+    renderSelected() {
+        const list = document.getElementById('slm_selected_list');
+        const count = document.getElementById('slm_count');
+        const empty = document.getElementById('slm_empty');
+        
+        if (!list || !window.loraHelper) return;
+
+        const selected = loraHelper.selected;
+        count.innerText = selected.length;
+
+        if (selected.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+
+        empty.style.display = 'none';
+        list.innerHTML = '';
+
+        selected.forEach(lora => {
+            const div = document.createElement('div');
+            div.className = 'slm-active-row';
+            const weight = lora.weight || 1.0;
+            
+            div.innerHTML = `
+                <div class="slm-row-header">
+                    <span title="${lora.name}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 85%;">${lora.name}</span>
+                    <span class="slm-btn-remove" onclick="swarmLoraManager.remove('${lora.name}')">✕</span>
+                </div>
+                <div class="slm-slider-wrap">
+                    <span>W:</span>
+                    <input type="range" class="slm-slider" min="-2" max="2" step="0.1" value="${weight}">
+                    <input type="number" class="slm-num" step="0.1" value="${weight}">
+                </div>
+            `;
+
+            const range = div.querySelector('input[type=range]');
+            const num = div.querySelector('input[type=number]');
+
+            const update = (val) => {
+                lora.weight = parseFloat(val);
+                range.value = val;
+                num.value = val;
+                loraHelper.rebuildParams(); // Update engine
+            };
+
+            range.oninput = (e) => update(e.target.value);
+            num.onchange = (e) => update(e.target.value);
+
+            list.appendChild(div);
+        });
+    }
+
+    remove(name) {
+        if (window.loraHelper) loraHelper.selectLora(name);
     }
 }
 
-/**
- * Initialize enhanced browsers
- * Add to the end of models.js or main.js after browsers are created
- */
-sessionReadyCallbacks.push(() => {
-    // Wait a bit for browsers to be fully created
-    setTimeout(() => {
-        try {
-            if (typeof sdLoraBrowser !== 'undefined' && sdLoraBrowser.browser) {
-                enhanceBrowserWithDropdown(sdLoraBrowser.browser);
-            }
-            if (typeof sdEmbedBrowser !== 'undefined' && sdEmbedBrowser.browser) {
-                enhanceBrowserWithDropdown(sdEmbedBrowser.browser);
-            }
-            console.log('Enhanced browser views applied');
-        } catch (e) {
-            console.warn('Could not enhance browsers:', e);
-        }
-    }, 1000);
-});
+// Init Global
+window.swarmLoraManager = new SwarmLoraManager();

@@ -1,0 +1,301 @@
+
+<head>
+        <style>
+        .simplified-preview-container { display: grid; grid-template-columns: 1fr 380px; gap: 1rem; height: calc(100vh - 120px); padding: 1rem; background: #1a1a1a; }
+        .preview-main-area { display: flex; flex-direction: column; gap: 1rem; overflow: hidden; }
+        .large-preview-frame { flex: 1; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .large-preview-frame img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+        .large-preview-placeholder { color: #666; font-size: 1.2rem; }
+        .thumbs-strip { height: 120px; background: #222; border-radius: 8px; padding: 0.5rem; display: flex; gap: 0.5rem; overflow-x: auto; }
+        .thumb-item { height: 100px; min-width: 100px; background: #333; border-radius: 4px; cursor: pointer; border: 3px solid transparent; overflow: hidden; }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+        .thumb-item.active { border-color: #4a9eff; box-shadow: 0 0 10px rgba(74,158,255,0.5); }
+        .controls-panel { background: #2a2a2a; border-radius: 8px; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+        .control-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .control-label { font-size: 0.9rem; color: #aaa; font-weight: 500; }
+        .control-input { background: #1a1a1a; border: 1px solid #444; border-radius: 4px; padding: 0.5rem; color: #fff; }
+        textarea.control-input { resize: vertical; min-height: 80px; font-family: monospace; }
+        .slider-container { display: flex; align-items: center; gap: 0.5rem; }
+        .slider-value { min-width: 40px; text-align: right; color: #ddd; }
+        .button-group { display: flex; gap: 0.5rem; }
+        .btn { padding: 0.75rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .btn-primary { background: #4a9eff; color: white; flex: 1; }
+        .btn-primary:hover { background: #3a8eef; }
+        .btn-secondary { background: #555; color: white; }
+        .btn-secondary:hover { background: #666; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .lora-list { max-height: 200px; overflow-y: auto; background: #1a1a1a; padding: 0.5rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.5rem; }
+        .lora-item { display: flex; align-items: center; gap: 0.5rem; background: #2a2a2a; padding: 0.5rem; border-radius: 4px; cursor: move; }
+        .lora-item.dragging { opacity: 0.5; }
+        .lora-name { flex: 1; font-size: 0.85rem; color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lora-weight { width: 60px; text-align: center; }
+        .no-loras-msg { color: #666; font-style: italic; text-align: center; padding: 1rem; }
+        .metadata-panel { background: #1a1a1a; border-radius: 4px; padding: 0.75rem; font-size: 0.85rem; color: #aaa; max-height: 150px; overflow-y: auto; }
+        .metadata-panel.hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="simplified-preview-container">
+        <div class="preview-main-area">
+            <div class="large-preview-frame" id="large-preview">
+                <div class="large-preview-placeholder">No image generated yet</div>
+            </div>
+            <div class="thumbs-strip" id="thumbs-strip"></div>
+        </div>
+        <div class="controls-panel">
+            <div class="control-group">
+                <label class="control-label">Prompt</label>
+                <textarea class="control-input" id="simple-prompt" placeholder="Describe what you want to see..."></textarea>
+            </div>
+            <div class="control-group">
+                <label class="control-label">LoRAs</label>
+                <div class="lora-list" id="lora-list"><div class="no-loras-msg">No LoRAs in prompt</div></div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Sampler</label>
+                <select class="control-input" id="simple-sampler">
+                    <option value="euler">Euler</option>
+                    <option value="euler_ancestral">Euler Ancestral</option>
+                    <option value="dpmpp_2m">DPM++ 2M</option>
+                    <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
+                    <option value="dpmpp_3m_sde">DPM++ 3M SDE</option>
+                    <option value="lcm">LCM</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Scheduler</label>
+                <select class="control-input" id="simple-scheduler">
+                    <option value="normal">Normal</option>
+                    <option value="karras">Karras</option>
+                    <option value="exponential">Exponential</option>
+                    <option value="sgm_uniform">SGM Uniform</option>
+                    <option value="simple">Simple</option>
+                    <option value="ddim_uniform">DDIM Uniform</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Steps</label>
+                <div class="slider-container">
+                    <input type="range" class="control-input" id="simple-steps" min="1" max="50" value="20">
+                    <span class="slider-value" id="simple-steps-value">20</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">CFG Scale</label>
+                <div class="slider-container">
+                    <input type="range" class="control-input" id="simple-cfg" min="1" max="20" step="0.5" value="7">
+                    <span class="slider-value" id="simple-cfg-value">7</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Seed</label>
+                <input type="number" class="control-input" id="simple-seed" value="-1">
+            </div>
+            <div class="control-group">
+                <label class="control-label">Variation Seed</label>
+                <input type="number" class="control-input" id="simple-varseed" value="0">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="simple-increment-seed" checked>
+                <label class="control-label">Increment Seed</label>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="simple-gen-previews">Gen Previews (4)</button>
+                <button class="btn btn-secondary" id="simple-gen-forever">Gen Forever</button>
+            </div>
+            <button class="btn btn-secondary" id="simple-stop">Stop Generation</button>
+            <button class="btn btn-secondary" id="simple-save">Save Current Image</button>
+            <div class="checkbox-group">
+                <input type="checkbox" id="simple-show-metadata" checked>
+                <label class="control-label">Show Metadata</label>
+            </div>
+            <div class="metadata-panel" id="metadata-panel">No metadata yet</div>
+        </div>
+    </div>
+
+<script>
+     function initSimplifiedPreview() {
+         if (!window.swarmHasLoaded || !window.mainGenHandler) {
+             setTimeout(initSimplifiedPreview, 100);
+             return;
+         }
+ 
+         const state = { currentImage: null, currentMetadata: null, loras: [], genForever: false };
+ 
+         const el = {
+             large: document.getElementById('large-preview'),
+             thumbs: document.getElementById('thumbs-strip'),
+             loraList: document.getElementById('lora-list'),
+             prompt: document.getElementById('simple-prompt'),
+             sampler: document.getElementById('simple-sampler'),
+             scheduler: document.getElementById('simple-scheduler'),
+             steps: document.getElementById('simple-steps'),
+             stepsVal: document.getElementById('simple-steps-value'),
+             cfg: document.getElementById('simple-cfg'),
+             cfgVal: document.getElementById('simple-cfg-value'),
+             seed: document.getElementById('simple-seed'),
+             varseed: document.getElementById('simple-varseed'),
+             increment: document.getElementById('simple-increment-seed'),
+             genPreviews: document.getElementById('simple-gen-previews'),
+             genForever: document.getElementById('simple-gen-forever'),
+             stop: document.getElementById('simple-stop'),
+             save: document.getElementById('simple-save'),
+             showMeta: document.getElementById('simple-show-metadata'),
+             metaPanel: document.getElementById('metadata-panel')
+         };
+ 
+         // Slider displays
+         el.steps.addEventListener('input', () => el.stepsVal.textContent = el.steps.value);
+         el.cfg.addEventListener('input', () => el.cfgVal.textContent = el.cfg.value);
+         el.showMeta.addEventListener('change', () => el.metaPanel.classList.toggle('hidden', !el.showMeta.checked));
+ 
+         // LoRA parsing & render
+         function parseLoRAs() {
+             const matches = [...el.prompt.value.matchAll(/<lora:([^:>]+):([0-9.]+)>/g)];
+             state.loras = matches.map(m => ({ name: m[1], weight: parseFloat(m[2]), enabled: true }));
+             renderLoRAs();
+         }
+ 
+         function renderLoRAs() {
+             if (state.loras.length === 0) {
+                 el.loraList.innerHTML = '<div class="no-loras-msg">No LoRAs in prompt</div>';
+                 return;
+             }
+             el.loraList.innerHTML = state.loras.map((l, i) => `
+                 <div class="lora-item" draggable="true">
+                     <input type="checkbox" class="lora-toggle" ${l.enabled ? 'checked' : ''}>
+                     <span class="lora-name" title="${l.name}">${l.name}</span>
+                     <input type="number" class="lora-weight" value="${l.weight}" step="0.1" min="0" max="2">
+                 </div>
+             `).join('');
+ 
+             // Events
+             el.loraList.querySelectorAll('.lora-toggle').forEach((cb, i) => cb.onchange = () => { state.loras[i].enabled = cb.checked; rebuildPrompt(); });
+             el.loraList.querySelectorAll('.lora-weight').forEach((inp, i) => inp.onchange = () => { state.loras[i].weight = parseFloat(inp.value); rebuildPrompt(); });
+
+            // Drag reorder
+            let dragged;
+            el.loraList.querySelectorAll('.lora-item').forEach(item => {
+                item.draggable = true;
+                item.ondragstart = () => dragged = item;
+                item.ondragover = e => e.preventDefault();
+                item.ondrop = e => {
+                    e.preventDefault();
+                    if (dragged !== item) {
+                        const from = Array.from(el.loraList.children).indexOf(dragged);
+                        const to = Array.from(el.loraList.children).indexOf(item);
+                        state.loras.splice(to, 0, state.loras.splice(from, 1)[0]);
+                        renderLoRAs();
+                        rebuildPrompt();
+                    }
+                };
+            });
+        }
+
+        function rebuildPrompt() {
+            let p = el.prompt.value.replace(/<lora:[^>]+>/g, '').trim();
+            const active = state.loras.filter(l => l.enabled).map(l => `<lora:${l.name}:${l.weight.toFixed(1)}>`).join(' ');
+            if (active) p += ' ' + active;
+            el.prompt.value = p.trim();
+        }
+
+        el.prompt.addEventListener('input', () => setTimeout(parseLoRAs, 500));
+
+        // Thumbs
+        function addThumb(src, metadata) {
+            const thumb = document.createElement('div');
+            thumb.className = 'thumb-item';
+            const img = document.createElement('img');
+            img.src = src;
+            thumb.appendChild(img);
+            thumb.onclick = () => {
+                el.large.innerHTML = `<img src="${src}">`;
+                state.currentImage = src;
+                state.currentMetadata = metadata;
+                document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+                if (metadata && el.showMeta.checked) {
+                    try {
+                        const p = JSON.parse(metadata).sui_image_params || {};
+                        el.metaPanel.innerHTML = Object.entries(p).map(([k,v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+                    } catch { el.metaPanel.textContent = metadata; }
+                } else {
+                    el.metaPanel.innerHTML = 'No metadata';
+                }
+            };
+            el.thumbs.appendChild(thumb);
+            el.thumbs.scrollLeft = el.thumbs.scrollWidth;
+            if (el.thumbs.children.length === 1) thumb.click();
+        }
+ 
+        // Safe hook - gets images from any generation
+        const origHook = window.gotImageResult || (() => {});
+        window.gotImageResult = (img, meta, batch) => {
+            addThumb(img, meta);
+            origHook(img, meta, batch);
+        };
+ 
+        // Generation
+        async function generate(previews = false) {
+            const overrides = {
+                prompt: el.prompt.value,
+                sampler: el.sampler.value,
+                scheduler: el.scheduler.value,
+                steps: parseInt(el.steps.value),
+                cfgscale: parseFloat(el.cfg.value),
+                seed: parseInt(el.seed.value),
+                variationseed: parseInt(el.varseed.value),
+                images: previews ? 4 : 1
+            };
+            await window.mainGenHandler.doGenerate(overrides);
+            if (el.increment.checked && el.seed.value !== '-1') el.seed.value = parseInt(el.seed.value) + 1;
+            if (state.genForever) setTimeout(() => generate(false), 100);
+        }
+ 
+        el.genPreviews.onclick = () => generate(true);
+        el.genForever.onclick = () => {
+            state.genForever = !state.genForever;
+            el.genForever.textContent = state.genForever ? 'Stop Forever' : 'Gen Forever';
+            el.genForever.classList.toggle('btn-danger', state.genForever);
+            if (state.genForever) generate(false);
+        };
+        el.stop.onclick = () => {
+            state.genForever = false;
+            el.genForever.textContent = 'Gen Forever';
+            el.genForever.classList.remove('btn-danger');
+            if (window.mainGenHandler.interrupt) window.mainGenHandler.interrupt();
+        };
+        el.save.onclick = () => {
+            if (!state.currentImage) return alert('No image selected');
+            const a = document.createElement('a');
+            a.href = state.currentImage;
+            a.download = `preview-${Date.now()}.png`;
+            a.click();
+        };
+ 
+        // Fullscreen zoom on large preview
+        el.large.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG') {
+                const overlay = document.createElement('div');
+                overlay.style = 'position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out';
+                const big = e.target.cloneNode();
+                big.style = 'max-width:98vw;max-height:98vh';
+                overlay.appendChild(big);
+                overlay.onclick = () => overlay.remove();
+                document.body.appendChild(overlay);
+            }
+        });
+ 
+        // Sync from main tab on load
+        const mainPrompt = document.getElementById('input_prompt');
+        if (mainPrompt) {
+            el.prompt.value = mainPrompt.value;
+            parseLoRAs();
+        }
+    }
+ 
+    initSimplifiedPreview();
+ </script>
+</body>
+</html>

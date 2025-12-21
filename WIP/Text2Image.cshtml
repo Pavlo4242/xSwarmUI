@@ -6,7 +6,6 @@
 }
 @section Header {
     <link rel="stylesheet" href="css/genpage.css?vary=@Utilities.VaryID" />
-    <link rel="stylesheet" href="css/prompt_params.css?vary=@Utilities.VaryID" />
 }
 
 @if (!Program.ServerSettings.IsInstalled)
@@ -88,8 +87,6 @@
     </div>
 </div>
 
-
-
 @section Scripts {
     <script src="js/lib/exif-reader.min.js"></script>
     <script src="js/genpage/gentab/welcomemessages.js?vary=@Utilities.VaryID"></script>
@@ -115,7 +112,6 @@
     <script src="js/genpage/main.js?vary=@Utilities.VaryID"></script>
     <script src="js/genpage/helpers/settings_editor.js?vary=@Utilities.VaryID"></script>
     <script src="js/genpage/server/logs.js?vary=@Utilities.VaryID"></script>
-    <script src="js/genpage/gentab/prompt_params.js?vary=@Utilities.VaryID"></script>
     <script src="js/genpage/helpers/ui_improvements.js?vary=@Utilities.VaryID"></script>
     @WebServer.PageFooterExtra
     <script src="js/genpage/helpers/finalscript.js?vary=@Utilities.VaryID"></script>

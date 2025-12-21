@@ -1,0 +1,21 @@
+
+/* Flex layout to put batch next to large image */
+.simpletabmainview {
+    display: flex;
+    flex-direction: row;
+}
+
+/* Maximize the central image area */
+.simple_image_container_img_wrapper {
+    flex-grow: 2;
+    height: calc(100vh - 10rem) !important;
+}
+
+/* Vertical batch strip next to the image */
+#simple_current_image_batch {
+    width: 250px;
+    height: calc(100vh - 10rem);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
