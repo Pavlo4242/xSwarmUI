@@ -713,8 +713,31 @@ function getImageFullSrc(src) {
     return fullSrc;
 }
 
-function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false, canReparse = true, isPlaceholder = false) {
+function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false) {
+    let largeImg = document.getElementById('current_image_img_large');
+    let previewImg = document.getElementById('current_image_img_preview');
+    let welcome = document.getElementById('welcome_message');
+
+    currentMetadataVal = metadata;
     currentImgSrc = src;
+
+    // Hide welcome on any image
+    if (welcome) welcome.style.display = 'none';
+
+    // Always update medium live preview
+    if (previewImg) {
+        previewImg.src = src;
+        previewImg.style.display = 'block';
+    }
+
+    // If this is a final complete image (not intermediate preview), update large
+    if (!previewGrow && src && !src.includes('progress')) { // Adjust condition if needed
+        if (largeImg) {
+            largeImg.src = src;
+            largeImg.style.display = 'block';
+        }
+    }
+    
     if (metadata) {
         metadata = interpretMetadata(metadata);
     }

@@ -800,6 +800,46 @@ function genpageLoad() {
             // Generate inputs and tools FIRST
             genInputs();
             genToolsList();
+
+            // --- LAYOUT & STYLE FIXES ---
+            try {
+                // 1. Reorder Layout: Move Core Settings below Prompt Box
+                const promptRegion = getRequiredElementById('alt_prompt_region');
+                const mainInputs = getRequiredElementById('main_inputs_area');
+                if (promptRegion && mainInputs) {
+                    // This ensures settings travel with prompt box to sidebar if moved
+                    promptRegion.after(mainInputs);
+                }
+
+                // 2. Inject Styles: Bigger Prompt Box + Correct Colors
+                const styleFix = document.createElement('style');
+                styleFix.innerHTML = `
+                    #alt_prompt_textbox {
+                        height: 200px !important;
+                        min-height: 150px;
+                        background-color: var(--input-bg) !important;
+                        color: var(--text-color) !important;
+                    }
+                    /* Fix layout spacing */
+                    #alt_prompt_region {
+                        margin-bottom: 1rem;
+                    }
+                    /* Ensure visibility when in tabs/sidebar */
+                    .tab-pane #alt_prompt_region, 
+                    .tab-pane #main_inputs_area {
+                        display: block !important;
+                    }
+                    /* Force inputs to respect theme colors in sidebar */
+                    #main_inputs_area input, #main_inputs_area select {
+                        background-color: var(--input-bg);
+                        color: var(--text-color);
+                    }
+                `;
+                document.head.appendChild(styleFix);
+            } catch (e) {
+                console.warn("Layout fix failed:", e);
+            }
+            // --- END LAYOUT FIXES ---
             
             // THEN load user param config tab after UI is built
             // This must come after genInputs() because it references the generated UI
@@ -937,9 +977,26 @@ class EnhancedLoRAManager {
 
     initUI() {
         let container = document.getElementById(this.containerId);
+        
+        // Auto-fix: If container doesn't exist, create it (likely missing from HTML template)
         if (!container) {
-            console.error('Enhanced LoRA container not found');
-            return;
+            // Try to find the standard LoRA container or insert after tools
+            let targetArea = document.getElementById('tool_container');
+            if (targetArea && targetArea.parentNode) {
+                let newContainer = document.createElement('div');
+                newContainer.id = this.containerId;
+                newContainer.className = 'input-group'; // Standard class
+                targetArea.parentNode.insertBefore(newContainer, targetArea.nextSibling);
+                container = newContainer;
+                // Add a header for consistency with other groups
+                let header = document.createElement('div');
+                header.innerHTML = '<span class="header-label">Enhanced LoRA Manager</span>';
+                header.className = 'input-group-header';
+                container.parentNode.insertBefore(header, container);
+            } else {
+                 console.error('Enhanced LoRA: Could not find insertion point.');
+                 return;
+            }
         }
 
         const styles = `
@@ -950,6 +1007,7 @@ class EnhancedLoRAManager {
                 display: flex; 
                 flex-direction: column; 
                 background: var(--bg-secondary);
+                color: var(--text-color);
             }
             .lora-tabs { 
                 display: flex; 
@@ -981,7 +1039,8 @@ class EnhancedLoRAManager {
                 display: none; /* Hidden by default */
                 flex-direction: column;
                 box-sizing: border-box;
-                background: var(--bg-color);
+                background: var(--bg-color) !important;
+                color: var(--text-color) !important;
             }
             
             /* Strict visibility control */
@@ -1020,6 +1079,7 @@ class EnhancedLoRAManager {
                 white-space: nowrap;
                 max-width: 100%;
                 user-select: none;
+                color: var(--text-color);
             }
             
             .lora-chip:hover { 
@@ -1053,8 +1113,8 @@ class EnhancedLoRAManager {
                 padding: 8px; 
                 border-radius: 4px; 
                 border: 1px solid var(--border-color); 
-                background: var(--input-bg); 
-                color: var(--text-color);
+                background: var(--input-bg) !important; 
+                color: var(--text-color) !important;
                 box-sizing: border-box;
             }
             
@@ -1082,6 +1142,7 @@ class EnhancedLoRAManager {
                 border-radius: 4px;
                 width: 100%;
                 box-sizing: border-box;
+                color: var(--text-color);
             }
             
             .lora-empty-state {
@@ -1102,6 +1163,14 @@ class EnhancedLoRAManager {
                 border-radius: 4px;
                 width: 100%;
                 box-sizing: border-box;
+                color: var(--text-color);
+            }
+            
+            /* FORCE INPUT COLORS for "Inverted" situations */
+            #enhanced_lora_container input, 
+            #enhanced_lora_container textarea {
+                background-color: var(--input-bg) !important;
+                color: var(--text-color) !important;
             }
         `;
         
@@ -1451,23 +1520,20 @@ class EnhancedLoRAManager {
     }
 }
 
-/**
- * Initialize enhanced browsers
- * Add to the end of models.js or main.js after browsers are created
- */
+// Initialize when the page is ready
 sessionReadyCallbacks.push(() => {
-    // Wait a bit for browsers to be fully created
-    setTimeout(() => {
-        try {
-            if (typeof sdLoraBrowser !== 'undefined' && sdLoraBrowser.browser) {
-                enhanceBrowserWithDropdown(sdLoraBrowser.browser);
-            }
-            if (typeof sdEmbedBrowser !== 'undefined' && sdEmbedBrowser.browser) {
-                enhanceBrowserWithDropdown(sdEmbedBrowser.browser);
-            }
-            console.log('Enhanced browser views applied');
-        } catch (e) {
-            console.warn('Could not enhance browsers:', e);
-        }
-    }, 1000);
+    // Apply enhancements to LoRA and Embedding browsers
+    if (typeof sdLoraBrowser !== 'undefined') {
+        enhanceBrowserWithDropdown(sdLoraBrowser.browser);
+    }
+    if (typeof sdEmbedBrowser !== 'undefined') {
+        enhanceBrowserWithDropdown(sdEmbedBrowser.browser);
+    }
+    
+    // Initialize Enhanced LoRA Manager
+    const enhancedLoRAManager = new EnhancedLoRAManager();
+    enhancedLoRAManager.init();
+    window.enhancedLoRAManager = enhancedLoRAManager;
+    
+    console.log('Enhanced browser views and LoRA manager applied');
 });

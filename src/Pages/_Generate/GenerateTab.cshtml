@@ -51,6 +51,16 @@
                         <a class="nav-link active translate" data-bs-toggle="tab" href="#Image-Result-Tab" aria-selected="true" role="tab">Image</a>
                     </li>
                     <li class="nav-item" role="presentation">
+                    <div class="current_image_wrapper" id="current_image">
+    <!-- Large static final image -->
+    <img id="current_image_img_large" class="current_image_img large-final" style="display:none;" />
+
+    <!-- Medium live preview (updates during gen) -->
+    <div class="live-preview-container">
+        <img id="current_image_img_preview" class="current_image_img medium-preview" />
+        <div class="image-preview-progress-wrapper"></div> <!-- Keeps existing progress bar -->
+    </div>
+</div>
                         <a class="nav-link translate" data-bs-toggle="tab" href="#Metadata-Tab" aria-selected="false" role="tab">Metadata</a>
                     </li>
                 </ul>

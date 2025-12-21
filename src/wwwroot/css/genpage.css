@@ -13,6 +13,7 @@ body {
     width: 100%;
     border-radius: 0.5rem;
 }
+
 .generate-button {
     background-color: var(--button-background);
     color: var(--button-text);
@@ -148,6 +149,10 @@ body {
 }
 .advanced_input_checkbox_presets {
     bottom: 0rem;
+}
+#main_inputs_area {
+    margin-top: 1rem; /* Space when prompt overlaps */
+    border-top: 1px solid var(--light-border);
 }
 .main_inputs_area_wrapper {
     overflow-x: hidden;
@@ -923,13 +928,14 @@ body {
     border-radius: 0.2rem;
 }
 .alt_prompt_region {
-    position: relative;
-    top: -3.5rem;
-    border-top: 1px solid var(--light-border);
-    width: fit-content;
-    padding-top: 0.5rem;
-    padding-bottom: 5px;
-    padding-left: 0.5rem;
+    z-index: 10; /* Above preview */
+    background: var(--background-soft);
+    border: 2px solid var(--light-border);
+    border-radius: 0.8rem;
+    padding: 1rem;
+    margin: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    pointer-events: auto;
 }
 .alt_prompt_main_line {
     display: flex;
@@ -950,9 +956,9 @@ body {
     color: color-mix(in srgb, var(--text) 50%, var(--background));
 }
 .alt_prompt_textboxes {
-    margin-left: 1rem;
-    display: inline-block;
-    flex-grow: 10;
+    background: var(--input-bg, var(--background));
+    border-radius: 0.5rem;
+    padding: 0.5rem;
 }
 .alt-text-tokencount-wrapper {
     position: relative;
@@ -1752,4 +1758,20 @@ body {
 }
 .current_image_batch:has(.sidebar-bottom-section ul.nav li) .sidebar-horizontal-split {
     display: block;
+}
+/* Force all inputs to theme colors */
+.auto-text, .auto-slider-box input, .auto-dropdown, .basic-button, input, select, textarea {
+    background-color: var(--input-bg, var(--background-soft)) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--light-border) !important;
+}
+
+.auto-slider-box input[type=range] {
+    background: transparent !important; /* Keeps track visible */
+}
+
+/* Group headers */
+.input_group_header {
+    background: var(--bg-secondary, rgba(0,0,0,0.2)) !important;
+    color: var(--text) !important;
 }
