@@ -150,10 +150,7 @@ body {
 .advanced_input_checkbox_presets {
     bottom: 0rem;
 }
-#main_inputs_area {
-    margin-top: 1rem; /* Space when prompt overlaps */
-    border-top: 1px solid var(--light-border);
-}
+
 .main_inputs_area_wrapper {
     overflow-x: hidden;
     overflow-y: auto;
@@ -1758,20 +1755,4 @@ body {
 }
 .current_image_batch:has(.sidebar-bottom-section ul.nav li) .sidebar-horizontal-split {
     display: block;
-}
-/* Force all inputs to theme colors */
-.auto-text, .auto-slider-box input, .auto-dropdown, .basic-button, input, select, textarea {
-    background-color: var(--input-bg, var(--background-soft)) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--light-border) !important;
-}
-
-.auto-slider-box input[type=range] {
-    background: transparent !important; /* Keeps track visible */
-}
-
-/* Group headers */
-.input_group_header {
-    background: var(--bg-secondary, rgba(0,0,0,0.2)) !important;
-    color: var(--text) !important;
 }

@@ -1,3 +1,4 @@
+
 // ===== HELPER FUNCTIONS - MUST BE DEFINED FIRST =====
 
 function getCookie(name) {
@@ -43,10 +44,11 @@ function injectLayoutCSS() {
     const style = document.createElement('style');
     style.id = 'gen-tab-layout-css';
     style.textContent = `
-        /* GLOBAL: Force wrapping and sizing in Sidebars */
-        #input_sidebar, #input_sidebar *, 
-        #current_image_batch_wrapper, #current_image_batch_wrapper *,
-        #alt_prompt_region, #alt_prompt_region * {
+        /* GLOBAL: Force wrapping and sizing in Sidebars - EXCLUDING MODALS */
+        #input_sidebar :not(.modal):not(.modal *), 
+        #current_image_batch_wrapper :not(.modal):not(.modal *),
+        #alt_prompt_region :not(.modal):not(.modal *),
+        #movable_metadata_region :not(.modal):not(.modal *) {
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
             box-sizing: border-box !important;
@@ -184,29 +186,52 @@ function injectLayoutCSS() {
             max-width: 100% !important;
         }
 
-        /* CENTER IMAGE SIZING */
+        /* CENTER IMAGE SIZING & METADATA FIXES */
         #main_image_area .current_image_wrapbox {
             width: 100% !important;
             height: 100% !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
-            overflow: auto !important;
+            overflow: auto !important; /* Allow scrolling for buttons/metadata */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+        
         #main_image_area .current_image {
             width: 100% !important;
-            height: 100% !important;
+            min-height: auto !important;
+            flex-grow: 1;
             display: flex !important;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             border: none !important;
         }
+
         .current-image-img {
             max-width: 100% !important;
-            max-height: 100% !important;
+            max-height: 80vh !important; /* Limit image height so buttons are visible */
             object-fit: contain !important;
             width: auto !important;
             height: auto !important;
+            flex-shrink: 1;
+        }
+        
+        /* Force metadata/buttons wrapper to be visible */
+        #movable_metadata_region {
+            display: block !important;
+            width: 100% !important;
+            margin-top: 10px;
+            flex-shrink: 0;
+            padding: 10px;
+            background: var(--background-soft);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Style when in main area */
+        #main_image_area #movable_metadata_region {
+             max-width: 900px;
+             border: none;
+             background: transparent;
         }
     `;
     document.head.appendChild(style);
@@ -346,6 +371,7 @@ class GenTabLayout {
             currentPromptLoc = 'Prompt-Tab';
         }
 
+        // --- PROMPT MOVABLE ---
         this.promptMovable = {
             id: 'alt_prompt_region',
             title: 'Prompt & Generate',
@@ -357,24 +383,36 @@ class GenTabLayout {
                     this.altRegion.style.position = 'relative';
                     this.altRegion.style.width = '100%';
                     this.altRegion.style.maxWidth = '100%';
-                    this.altRegion.style.boxSizing = 'border-box';
-                    this.altRegion.style.wordWrap = 'break-word';
-                    this.altRegion.style.overflowWrap = 'break-word';
-                    
-                    const promptChildren = this.altRegion.querySelectorAll('*');
-                    promptChildren.forEach(child => {
-                        if (child.style) {
-                            child.style.wordWrap = 'break-word';
-                            child.style.overflowWrap = 'break-word';
-                            child.style.maxWidth = '100%';
-                            child.style.boxSizing = 'border-box';
-                        }
-                    });
-                    
                     setCookie('tabloc_alt_prompt_region', this.promptMovable.targetGroupId, 365);
                 }
             }
         };
+
+        // --- METADATA MOVABLE ---
+        this.metadataWrapper = document.querySelector('.current-image-extras-wrapper');
+        if (this.metadataWrapper) {
+            this.metadataWrapper.id = 'movable_metadata_region'; 
+            let currentMetaLoc = getCookie('tabloc_movable_metadata_region') || 'Main-Image-Area';
+
+            this.metadataMovable = {
+                id: 'movable_metadata_region',
+                title: 'Image Metadata & Buttons',
+                targetGroupId: currentMetaLoc,
+                update: () => {
+                    let target;
+                    if (this.metadataMovable.targetGroupId === 'Main-Image-Area') {
+                         target = document.querySelector('.current_image_wrapbox');
+                    } else {
+                        target = getRequiredElementById(this.metadataMovable.targetGroupId);
+                    }
+
+                    if (target && this.metadataWrapper && this.metadataWrapper.parentElement != target) {
+                        target.appendChild(this.metadataWrapper);
+                        setCookie('tabloc_movable_metadata_region', this.metadataMovable.targetGroupId, 365);
+                    }
+                }
+            };
+        }
 
         this.managedTabs = [...this.tabCollections].flatMap(e => [...e.querySelectorAll('.nav-link')]).map(e => new MovableGenTab(e, this));
         
@@ -386,6 +424,18 @@ class GenTabLayout {
             left: this.leftSectionBarPos,
             right: this.rightSectionBarPos,
             bottom: this.bottomSectionBarPos
+        });
+    }
+
+    // NEW: Function to rescue modals from sidebar stacking contexts
+    fixModals() {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            // Move modals to body if they are currently nested elsewhere
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+                console.log('Moved modal to body:', modal.id);
+            }
         });
     }
 
@@ -803,6 +853,9 @@ class GenTabLayout {
         // Inject CSS first
         injectLayoutCSS();
 
+        // 1. Fix Modals (Move them out of sidebars/containers)
+        this.fixModals();
+
         this.populateTabContainers();
         
         for (let tab of this.managedTabs) {
@@ -917,6 +970,7 @@ class GenTabLayout {
         });
 
         this.promptMovable.update();
+        if (this.metadataMovable) this.metadataMovable.update();
         this.reapplyPositions();
         this.buildConfigArea();
 
@@ -961,7 +1015,20 @@ class GenTabLayout {
                                 </select>
                             </td>
                             <td>Always</td>
-                        </tr>`;
+                        </tr>
+                        <tr class="table-info">
+                            <td><b>Image Metadata</b></td>
+                            <td>
+                                <select id="cfg_metadata_loc" class="form-select form-select-sm">
+                                    <option value="Main-Image-Area">Main Image Area (Default)</option>
+                                    <option value="Input-Sidebar-Main-Tab">Left Sidebar</option>
+                                    <option value="Prompt-Tab">Bottom Bar</option>
+                                    <option value="rightsidebarcontent">Right Sidebar</option>
+                                </select>
+                            </td>
+                            <td>Always</td>
+                        </tr>
+                        `;
         
         for (let tab of this.managedTabs) {
             html += `
@@ -1001,6 +1068,16 @@ class GenTabLayout {
             promptLoc.onchange = (e) => { 
                 this.promptMovable.targetGroupId = e.target.value; 
                 this.promptMovable.update(); 
+                this.reapplyPositions(); 
+            };
+        }
+
+        const metaLoc = document.getElementById('cfg_metadata_loc');
+        if (metaLoc && this.metadataMovable) {
+            metaLoc.value = this.metadataMovable.targetGroupId;
+            metaLoc.onchange = (e) => { 
+                this.metadataMovable.targetGroupId = e.target.value; 
+                this.metadataMovable.update(); 
                 this.reapplyPositions(); 
             };
         }
@@ -1054,7 +1131,8 @@ class GenTabLayout {
         if (confirm("Reset entire layout? This will reload the page.")) { 
             localStorage.clear(); 
             const cookies = ['barspot_pageBarTop', 'barspot_pageBarTop2', 'barspot_pageBarMidPx', 
-                           'barspot_leftSplit', 'barspot_rightSplit', 'layout_hidetabs'];
+                           'barspot_leftSplit', 'barspot_rightSplit', 'layout_hidetabs', 
+                           'tabloc_movable_metadata_region'];
             cookies.forEach(c => deleteCookie(c));
             location.reload(); 
         } 
