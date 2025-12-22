@@ -1,5 +1,4 @@
-var canReparse = true;
-//** Central helper class to handle the 'image full view' modal. */
+/** Central helper class to handle the 'image full view' modal. */
 class ImageFullViewHelper {
     constructor() {
         this.zoomRate = 1.1;
@@ -232,16 +231,16 @@ class ImageFullViewHelper {
             imgHtml = `<audio class="imageview_popup_modal_img" id="imageview_popup_modal_img" style="cursor:grab;max-width:100%;object-fit:contain;" controls src="${encodedSrc}"></audio>`;
         }
         this.content.innerHTML = `
-        <div class="modal-dialog" style="display:none">(click outside image to close)</div>
-        <div class="imageview_modal_inner_div">
-            <div class="imageview_modal_imagewrap" id="imageview_modal_imagewrap" style="text-align:center;">
-                ${imgHtml}
-            </div>
-            <div class="imageview_popup_modal_undertext">
-                <div class="image_fullview_extra_buttons"></div>
-                <div class="image_fullview_metadata">${formatMetadata(metadata)}</div>
-            </div>
-        </div>`;
+    <div class="modal-dialog" style="display:none">(click outside image to close)</div>
+    <div class="imageview_modal_inner_div">
+        <div class="imageview_modal_imagewrap" id="imageview_modal_imagewrap" style="text-align:center;">
+            ${imgHtml}
+        </div>
+        <div class="imageview_popup_modal_undertext">
+            <div class="image_fullview_extra_buttons"></div>
+            <div class="image_fullview_metadata">${formatMetadata(metadata)}</div>
+        </div>
+    </div>`;
         let subDiv = this.content.querySelector('.image_fullview_extra_buttons');
         for (let added of buttonsForImage(getImageFullSrc(src), src, metadata)) {
             if (added.href) {
@@ -351,7 +350,7 @@ function clearBatch() {
 /** Reference to the auto-clear-batch toggle checkbox. */
 let autoClearBatchElem = getRequiredElementById('auto_clear_batch_checkbox');
 autoClearBatchElem.checked = localStorage.getItem('autoClearBatch') == 'true';
-/* Called when the user changes auto-clear-batch toggle to update local storage. */
+/** Called when the user changes auto-clear-batch toggle to update local storage. */
 function toggleAutoClearBatch() {
     localStorage.setItem('autoClearBatch', autoClearBatchElem.checked);
 }
@@ -359,7 +358,7 @@ function toggleAutoClearBatch() {
 /** Reference to the auto-load-previews toggle checkbox. */
 let autoLoadPreviewsElem = getRequiredElementById('auto_load_previews_checkbox');
 autoLoadPreviewsElem.checked = localStorage.getItem('autoLoadPreviews') == 'true';
-/* Called when the user changes auto-load-previews toggle to update local storage. */
+/** Called when the user changes auto-load-previews toggle to update local storage. */
 function toggleAutoLoadPreviews() {
     localStorage.setItem('autoLoadPreviews', autoLoadPreviewsElem.checked);
 }
@@ -367,7 +366,7 @@ function toggleAutoLoadPreviews() {
 /** Reference to the auto-load-images toggle checkbox. */
 let autoLoadImagesElem = getRequiredElementById('auto_load_images_checkbox');
 autoLoadImagesElem.checked = localStorage.getItem('autoLoadImages') != 'false';
-/* Called when the user changes auto-load-images toggle to update local storage. */
+/** Called when the user changes auto-load-images toggle to update local storage. */
 function toggleAutoLoadImages() {
     localStorage.setItem('autoLoadImages', autoLoadImagesElem.checked);
 }
@@ -375,7 +374,7 @@ function toggleAutoLoadImages() {
 /** Reference to the show-load-spinners toggle checkbox. */
 let showLoadSpinnersElem = getRequiredElementById('show_load_spinners_checkbox');
 showLoadSpinnersElem.checked = localStorage.getItem('showLoadSpinners') != 'false';
-/* Called when the user changes show-load-spinners toggle to update local storage. */
+/** Called when the user changes show-load-spinners toggle to update local storage. */
 function toggleShowLoadSpinners() {
     localStorage.setItem('showLoadSpinners', showLoadSpinnersElem.checked);
 }
@@ -383,7 +382,7 @@ function toggleShowLoadSpinners() {
 /** Reference to the separate-batches toggle checkbox. */
 let separateBatchesElem = getRequiredElementById('separate_batches_checkbox');
 separateBatchesElem.checked = localStorage.getItem('separateBatches') == 'true';
-/* Called when the user changes separate-batches toggle to update local storage. */
+/** Called when the user changes separate-batches toggle to update local storage. */
 function toggleSeparateBatches() {
     localStorage.setItem('separateBatches', separateBatchesElem.checked);
 }
@@ -528,11 +527,10 @@ function copy_current_image_params() {
     hideUnsupportableParams();
 }
 
-/**
-Shifts the current image view (and full-view if open) to the next or previous image.
-
-Returns true if the shift was successful, returns false if there was nothing to shift to.
-*/
+/** 
+ * Shifts the current image view (and full-view if open) to the next or previous image.
+ * Returns true if the shift was successful, returns false if there was nothing to shift to. 
+ */
 function shiftToNextImagePreview(next = true, expand = false, isArrows = false) {
     let curImgElem = currentImageHelper.getCurrentImage();
     if (!curImgElem) {
@@ -685,7 +683,7 @@ function toggleStar(path, rawSrc) {
     });
 }
 
-defaultButtonChoices = 'Use As Init,Edit Image,Star,Reuse Parameters';
+defaultButtonChoices = 'Use As Init,Edit Image,Star,Reuse Parameters,View In History';
 
 function getImageFullSrc(src) {
     if (src == null) {
@@ -865,7 +863,8 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
         let buttons = createDiv(null, 'current-image-buttons');
         let imagePathClean = getImageFullSrc(src);
         let buttonsChoice = getUserSetting('ButtonsUnderMainImages', '');
-        if (buttonsChoice == '') {
+        // Force default buttons if setting is empty or missing
+        if (!buttonsChoice || buttonsChoice.trim() === '') {
             buttonsChoice = defaultButtonChoices;
         }
         buttonsChoice = buttonsChoice.toLowerCase().replaceAll(' ', '').split(',');
