@@ -1,8 +1,10 @@
 /**
- * Add core generation parameters directly to the Prompt Tab
- * This creates TRUE CLONES - the original inputs remain in the sidebar
- * Place this in: src/wwwroot/js/genpage/gentab/prompt_params.js
- */
+    Add core generation parameters directly to the Prompt Tab
+    
+    This creates TRUE CLONES - the original inputs remain in the sidebar
+    
+    Place this in: src/wwwroot/js/genpage/gentab/prompt_params.js
+*/
 
 // Wait for the page to fully load
 sessionReadyCallbacks.push(() => {
@@ -14,13 +16,13 @@ sessionReadyCallbacks.push(() => {
 
 function addCoreParamsToPromptTab() {
     console.log('Attempting to add core parameters to prompt tab...');
-    
+
     // Prevent duplicate insertion if this runs multiple times
     if (document.getElementById('prompt_tab_params_container')) {
         console.log('Parameters container already exists, skipping.');
         return;
     }
-    
+
     // Get the main prompt line area - this is where we'll insert
     const altPromptMainLine = document.querySelector('.alt_prompt_main_line');
     if (!altPromptMainLine) {
@@ -37,11 +39,14 @@ function addCoreParamsToPromptTab() {
 
     console.log('Found insertion point, creating parameters container...');
 
+    // Inject custom layout styles to organize the bar (Prompt Middle, Settings Right)
+    addParamsLayoutStyles();
+
     // Create the container for our parameters
     const paramsContainer = document.createElement('div');
     paramsContainer.id = 'prompt_tab_params_container';
     paramsContainer.className = 'prompt-tab-params-container';
-    
+
     // Build the HTML structure
     paramsContainer.innerHTML = `
         <div class="prompt-params-header">
@@ -54,19 +59,127 @@ function addCoreParamsToPromptTab() {
             <div class="prompt-params-grid" id="prompt_params_grid"></div>
         </div>
     `;
-    
-    // Insert before the buttons wrapper
-    altPromptMainLine.insertBefore(paramsContainer, buttonsWrapper);
-    
+
+    // Insert AFTER the buttons wrapper to place it on the far right
+    buttonsWrapper.after(paramsContainer);
+
     console.log('Container inserted, now populating parameters...');
-    
+
     // Add the parameters
     populatePromptParams();
-    
+
     // Setup toggle functionality
     setupParamsToggle();
-    
+
     console.log('Core parameters successfully added to prompt tab');
+}
+
+function addParamsLayoutStyles() {
+    // Prevent duplicate style injection
+    if (document.getElementById('prompt_params_layout_css')) return;
+
+    const style = document.createElement('style');
+    style.id = 'prompt_params_layout_css';
+    style.innerHTML = `
+        /* Enforce Flexbox on the main line to control layout */
+        .alt_prompt_main_line {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            width: 100% !important;
+            padding-right: 5px !important;
+        }
+
+        /* Make Prompt Bigger: Force it to fill all available space */
+        .alt_prompt_textboxes {
+            flex-grow: 10 !important;
+            flex-shrink: 1 !important;
+            width: auto !important;
+            min-width: 300px !important; /* Prevent it from getting crushed */
+        }
+
+        /* Prevent other elements from shifting unexpectedly */
+        .alt-text-add-button-wrapper, 
+        .alt-text-tokencount-wrapper,
+        .alt-prompt-buttons-wrapper {
+            flex-shrink: 0 !important;
+            height: auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+        }
+
+        /* Settings Container Styling (Right Side) */
+        .prompt-tab-params-container {
+            flex-shrink: 0 !important;
+            width: 280px !important; /* Fixed width for stability */
+            min-width: 280px !important;
+            border-left: 1px solid rgba(128, 128, 128, 0.5);
+            padding-left: 10px;
+            margin-left: 5px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100px; /* Limit height to match prompt area roughly */
+            overflow: visible;
+        }
+
+        /* Header Compactness */
+        .prompt-params-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 2px;
+            margin-bottom: 2px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        }
+        
+        .prompt-params-title {
+            margin: 0 !important;
+            font-size: 0.85rem !important;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        /* Grid Layout for Inputs */
+        .prompt-params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        
+        .prompt-params-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* Compact Parameter Inputs */
+        .prompt-param {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .prompt-param-label {
+            font-size: 0.7rem !important;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0 !important;
+        }
+
+        .prompt-param-input-field,
+        .prompt-param-select {
+            font-size: 0.8rem !important;
+            padding: 1px 4px !important;
+            height: 24px !important;
+            width: 100% !important;
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 function populatePromptParams() {
@@ -87,7 +200,7 @@ function populatePromptParams() {
     ];
 
     let successCount = 0;
-    
+
     params.forEach(param => {
         const paramId = param.id;
         const originalInput = document.getElementById(`input_${paramId}`);
@@ -105,6 +218,10 @@ function populatePromptParams() {
         // Create parameter wrapper
         const paramDiv = document.createElement('div');
         paramDiv.className = `prompt-param prompt-param-span-${param.span}`;
+        // Add grid span style if needed
+        if (param.span > 1) {
+            paramDiv.style.gridColumn = `span ${param.span}`;
+        }
         
         const label = document.createElement('label');
         label.className = 'prompt-param-label';
@@ -124,7 +241,7 @@ function populatePromptParams() {
             successCount++;
         }
     });
-    
+
     console.log(`Successfully added ${successCount} parameters to prompt tab`);
 }
 
@@ -182,7 +299,7 @@ function cloneInput(paramId, originalInput) {
                 originalInput.value = clonedInput.value;
                 triggerChangeFor(originalInput);
             });
-            
+
             clonedInput.addEventListener('change', () => {
                 originalInput.value = clonedInput.value;
                 triggerChangeFor(originalInput);
@@ -213,12 +330,12 @@ function setupParamsToggle() {
     const toggleBtn = document.getElementById('prompt_params_toggle');
     const content = document.getElementById('prompt_params_content');
     const icon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
-    
+
     if (!toggleBtn || !content) {
         console.warn('Toggle button or content not found');
         return;
     }
-    
+
     // Load saved state
     const isCollapsed = localStorage.getItem('prompt_params_collapsed') === 'true';
     if (isCollapsed) {
@@ -226,7 +343,7 @@ function setupParamsToggle() {
         if (icon) icon.textContent = '▶';
         toggleBtn.classList.add('collapsed');
     }
-    
+
     // Toggle functionality
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -251,7 +368,7 @@ function setupParamsToggle() {
             }, 10);
         }
     });
-    
+
     // Make header clickable too
     const header = toggleBtn.closest('.prompt-params-header');
     if (header) {
@@ -262,7 +379,7 @@ function setupParamsToggle() {
             }
         });
     }
-    
+
     console.log('Toggle functionality set up');
 }
 

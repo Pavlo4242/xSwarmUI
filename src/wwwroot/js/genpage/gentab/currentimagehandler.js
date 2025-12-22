@@ -1,5 +1,5 @@
-
-/** Central helper class to handle the 'image full view' modal. */
+var canReparse = true;
+//** Central helper class to handle the 'image full view' modal. */
 class ImageFullViewHelper {
     constructor() {
         this.zoomRate = 1.1;
@@ -7,11 +7,15 @@ class ImageFullViewHelper {
         this.content = getRequiredElementById('image_fullview_modal_content');
         this.modalJq = $('#image_fullview_modal');
         this.noClose = false;
+
         document.addEventListener('click', (e) => {
             if (e.target.tagName == 'BODY') {
                 return; // it's impossible on the genpage to actually click body, so this indicates a bugged click, so ignore it
             }
-            if (!this.noClose && this.modal.style.display == 'block' && !findParentOfClass(e.target, 'imageview_popup_modal_undertext') && !findParentOfClass(e.target, 'video-controls') && !findParentOfClass(e.target, 'image_fullview_extra_buttons')) {
+            if (!this.noClose && this.modal.style.display == 'block' &&
+                !findParentOfClass(e.target, 'imageview_popup_modal_undertext') &&
+                !findParentOfClass(e.target, 'video-controls') &&
+                !findParentOfClass(e.target, 'image_fullview_extra_buttons')) {
                 this.close();
                 e.preventDefault();
                 e.stopPropagation();
@@ -19,14 +23,17 @@ class ImageFullViewHelper {
             }
             this.noClose = false;
         }, true);
+
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.isDragging = false;
         this.didDrag = false;
+
         this.content.addEventListener('wheel', this.onWheel.bind(this));
         this.content.addEventListener('mousedown', this.onMouseDown.bind(this));
         document.addEventListener('mouseup', this.onGlobalMouseUp.bind(this));
         document.addEventListener('mousemove', this.onGlobalMouseMove.bind(this));
+
         this.fixButtonDelay = null;
         this.lastClosed = 0;
         this.showMetadata = true;
@@ -308,8 +315,15 @@ class ImageFullViewHelper {
 let imageFullView = new ImageFullViewHelper();
 
 class CurrentImageHelper {
-
     getCurrentImage() {
+        let large = document.getElementById('current_image_img_large');
+        if (large && large.style.display != 'none') {
+            return large;
+        }
+        let preview = document.getElementById('current_image_img_preview');
+        if (preview && preview.style.display != 'none') {
+            return preview;
+        }
         return document.getElementById('current_image_img');
     }
 
@@ -337,41 +351,41 @@ function clearBatch() {
 /** Reference to the auto-clear-batch toggle checkbox. */
 let autoClearBatchElem = getRequiredElementById('auto_clear_batch_checkbox');
 autoClearBatchElem.checked = localStorage.getItem('autoClearBatch') == 'true';
-/** Called when the user changes auto-clear-batch toggle to update local storage. */
+/* Called when the user changes auto-clear-batch toggle to update local storage. */
 function toggleAutoClearBatch() {
-    localStorage.setItem('autoClearBatch', `${autoClearBatchElem.checked}`);
+    localStorage.setItem('autoClearBatch', autoClearBatchElem.checked);
 }
 
 /** Reference to the auto-load-previews toggle checkbox. */
 let autoLoadPreviewsElem = getRequiredElementById('auto_load_previews_checkbox');
 autoLoadPreviewsElem.checked = localStorage.getItem('autoLoadPreviews') == 'true';
-/** Called when the user changes auto-load-previews toggle to update local storage. */
+/* Called when the user changes auto-load-previews toggle to update local storage. */
 function toggleAutoLoadPreviews() {
-    localStorage.setItem('autoLoadPreviews', `${autoLoadPreviewsElem.checked}`);
+    localStorage.setItem('autoLoadPreviews', autoLoadPreviewsElem.checked);
 }
 
 /** Reference to the auto-load-images toggle checkbox. */
 let autoLoadImagesElem = getRequiredElementById('auto_load_images_checkbox');
 autoLoadImagesElem.checked = localStorage.getItem('autoLoadImages') != 'false';
-/** Called when the user changes auto-load-images toggle to update local storage. */
+/* Called when the user changes auto-load-images toggle to update local storage. */
 function toggleAutoLoadImages() {
-    localStorage.setItem('autoLoadImages', `${autoLoadImagesElem.checked}`);
+    localStorage.setItem('autoLoadImages', autoLoadImagesElem.checked);
 }
 
-/** Reference to the auto-clear-batch toggle checkbox. */
+/** Reference to the show-load-spinners toggle checkbox. */
 let showLoadSpinnersElem = getRequiredElementById('show_load_spinners_checkbox');
 showLoadSpinnersElem.checked = localStorage.getItem('showLoadSpinners') != 'false';
-/** Called when the user changes show-load-spinners toggle to update local storage. */
+/* Called when the user changes show-load-spinners toggle to update local storage. */
 function toggleShowLoadSpinners() {
-    localStorage.setItem('showLoadSpinners', `${showLoadSpinnersElem.checked}`);
+    localStorage.setItem('showLoadSpinners', showLoadSpinnersElem.checked);
 }
 
 /** Reference to the separate-batches toggle checkbox. */
 let separateBatchesElem = getRequiredElementById('separate_batches_checkbox');
 separateBatchesElem.checked = localStorage.getItem('separateBatches') == 'true';
-/** Called when the user changes separate-batches toggle to update local storage. */
+/* Called when the user changes separate-batches toggle to update local storage. */
 function toggleSeparateBatches() {
-    localStorage.setItem('separateBatches', `${separateBatchesElem.checked}`);
+    localStorage.setItem('separateBatches', separateBatchesElem.checked);
 }
 
 function clickImageInBatch(div) {
@@ -407,8 +421,7 @@ function rightClickImageInBatch(e, div) {
     for (let added of buttonsForImage(fullsrc, src, metadata)) {
         if (added.href) {
             popoverActions.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title });
-        }
-        else {
+        } else {
             popoverActions.push({ key: added.label, action: added.onclick, title: added.title });
         }
     }
@@ -436,13 +449,12 @@ function copy_current_image_params() {
         metadata.negativeprompt = extra.original_negativeprompt;
     }
     // Special hacks to repair edge cases in LoRA reuse
-    // There should probably just be a direct "for lora in list, set lora X with weight Y" instead of this
     if ('lorasectionconfinement' in metadata && 'loras' in metadata && 'loraweights' in metadata) {
         let confinements = metadata.lorasectionconfinement;
         let loras = metadata.loras;
         let weights = metadata.loraweights;
         let promptedLoras = extra.prompted_loras || [];
-        let isOldSwarmVers = !metadata.swarm_version || metadata.swarm_version.match(/^0\.9\.[0-6]\./);
+        let isOldSwarmVers = !metadata.swarm_version || metadata.swarm_version.match(/^0.9.[0-6]./);
         if (confinements.length == loras.length && loras.length == weights.length) {
             let newLoras = [];
             let newWeights = [];
@@ -458,8 +470,7 @@ function copy_current_image_params() {
             metadata.loraweights = newWeights;
             if (isOldSwarmVers) {
                 delete metadata.lorasectionconfinement;
-            }
-            else {
+            } else {
                 metadata.lorasectionconfinement = newConfinements;
             }
         }
@@ -508,8 +519,7 @@ function copy_current_image_params() {
                 group = group.parent;
             }
             setDirectParamValue(param, val);
-        }
-        else if (elem && param.toggleable && param.visible && !resetExclude.includes(param.id)) {
+        } else if (elem && param.toggleable && param.visible && !resetExclude.includes(param.id)) {
             let toggle = getRequiredElementById(`input_${param.id}_toggle`);
             toggle.checked = false;
             doToggleEnable(elem.id);
@@ -519,9 +529,10 @@ function copy_current_image_params() {
 }
 
 /**
- * Shifts the current image view (and full-view if open) to the next or previous image.
- * Returns true if the shift was successful, returns false if there was nothing to shift to.
- */
+Shifts the current image view (and full-view if open) to the next or previous image.
+
+Returns true if the shift was successful, returns false if there was nothing to shift to.
+*/
 function shiftToNextImagePreview(next = true, expand = false, isArrows = false) {
     let curImgElem = currentImageHelper.getCurrentImage();
     if (!curImgElem) {
@@ -543,8 +554,7 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
                 return false;
             }
             newIndex = divs.length - 1;
-        }
-        else if (newIndex >= divs.length) {
+        } else if (newIndex >= divs.length) {
             if (!doCycle) {
                 return false;
             }
@@ -575,8 +585,7 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
             return false;
         }
         newIndex = imgs.length - 1;
-    }
-    else if (newIndex >= imgs.length) {
+    } else if (newIndex >= imgs.length) {
         if (!doCycle) {
             return false;
         }
@@ -597,26 +606,18 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
 
 window.addEventListener('keydown', function(kbevent) {
     let isFullView = imageFullView.isOpen();
-    let isCurImgFocused = document.activeElement &&
-        (findParentOfClass(document.activeElement, 'current_image')
-        || findParentOfClass(document.activeElement, 'current_image_batch')
-        || document.activeElement.tagName == 'BODY');
+    let isCurImgFocused = document.activeElement && (findParentOfClass(document.activeElement, 'current_image') || findParentOfClass(document.activeElement, 'current_image_batch') || document.activeElement.tagName == 'BODY');
     if (isFullView && kbevent.key == 'Escape') {
         $('#image_fullview_modal').modal('toggle');
-    }
-    else if ((kbevent.key == 'ArrowLeft' || kbevent.key == 'ArrowUp') && (isFullView || isCurImgFocused)) {
+    } else if ((kbevent.key == 'ArrowLeft' || kbevent.key == 'ArrowUp') && (isFullView || isCurImgFocused)) {
         shiftToNextImagePreview(false, isFullView, true);
-    }
-    else if ((kbevent.key == 'ArrowRight' || kbevent.key == 'ArrowDown') && (isFullView || isCurImgFocused)) {
+    } else if ((kbevent.key == 'ArrowRight' || kbevent.key == 'ArrowDown') && (isFullView || isCurImgFocused)) {
         shiftToNextImagePreview(true, isFullView, true);
-    }
-    else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('main_image_area'))) {
+    } else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('main_image_area'))) {
         getRequiredElementById('alt_generate_button').click();
-    }
-    else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('simple_generate_button'))) {
+    } else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('simple_generate_button'))) {
         getRequiredElementById('simple_generate_button').click();
-    }
-    else {
+    } else {
         return;
     }
     kbevent.preventDefault();
@@ -631,7 +632,6 @@ function alignImageDataFormat() {
         return;
     }
     let curImgContainer = currentImageHelper.getCurrentImageContainer();
-    let format = getUserSetting('ImageMetadataFormat', 'auto');
     let extrasWrapper = document.getElementById('image_metadata_container');
     if (!extrasWrapper) {
         return;
@@ -642,10 +642,9 @@ function alignImageDataFormat() {
     let ratio = imgWidth / imgHeight;
     let height = Math.min(imgHeight, curImg.offsetHeight);
     let width = Math.min(imgWidth, height * ratio);
-    let remainingWidth = curImg.clientWidth - width - 30;
-    curImgContainer.style.maxWidth = `calc(min(100%, ${width}px))`;
+    curImgContainer.style.maxWidth = `min(100%, ${width}px)`;
     curImg.classList.remove('current_image_small');
-    curImgContainer.style.maxHeight = `calc(max(15rem, 100%))`;
+    curImgContainer.style.maxHeight = `max(15rem, 100%)`;
 }
 
 function toggleStar(path, rawSrc) {
@@ -660,8 +659,7 @@ function toggleStar(path, rawSrc) {
                 if (data.new_state) {
                     button.classList.add('button-starred-image');
                     button.innerText = 'Starred';
-                }
-                else {
+                } else {
                     button.classList.remove('button-starred-image');
                     button.innerText = 'Star';
                 }
@@ -713,7 +711,7 @@ function getImageFullSrc(src) {
     return fullSrc;
 }
 
-function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false) {
+function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false, force = false, isPlaceholder = false) {
     let largeImg = document.getElementById('current_image_img_large');
     let previewImg = document.getElementById('current_image_img_preview');
     let welcome = document.getElementById('welcome_message');
@@ -724,20 +722,6 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
     // Hide welcome on any image
     if (welcome) welcome.style.display = 'none';
 
-    // Always update medium live preview
-    if (previewImg) {
-        previewImg.src = src;
-        previewImg.style.display = 'block';
-    }
-
-    // If this is a final complete image (not intermediate preview), update large
-    if (!previewGrow && src && !src.includes('progress')) { // Adjust condition if needed
-        if (largeImg) {
-            largeImg.src = src;
-            largeImg.style.display = 'block';
-        }
-    }
-    
     if (metadata) {
         metadata = interpretMetadata(metadata);
     }
@@ -754,11 +738,11 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
         image.onload = () => {
             if (!metadata) {
                 parseMetadata(image, (data, parsedMetadata) => {
-                    setCurrentImage(src, parsedMetadata, batchId, previewGrow, false, false);
+                    setCurrentImage(src, parsedMetadata, batchId, previewGrow, false, false, isPlaceholder);
                 });
             }
             else {
-                setCurrentImage(src, metadata, batchId, previewGrow, false, false);
+                setCurrentImage(src, metadata, batchId, previewGrow, false, false, isPlaceholder);
             }
         };
         image.src = src;
@@ -771,45 +755,69 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
     else {
         curImg.classList.remove('current_image_placeholder');
     }
-    let container;
+
+    // New logic: Check if we can use the existing split-image structure
+    let canUseSplit = largeImg && previewImg && !isVideo && !isAudio;
     let img;
-    let isReuse = false;
-    let srcTarget;
-    if (isVideo) {
-        container = createDiv(null, 'video-container current-image-img');
-        curImg.innerHTML = '';
-        img = document.createElement('video');
-        img.className = 'current-image-img';
-        img.loop = true;
-        img.autoplay = true;
-        let sourceObj = document.createElement('source');
-        srcTarget = sourceObj;
-        sourceObj.type = isVideo;
-        img.appendChild(sourceObj);
-        container.appendChild(img);
-    }
-    else if (isAudio) {
-        curImg.innerHTML = '';
-        img = document.createElement('audio');
-        img.controls = true;
-        srcTarget = img;
-        container = img;
-    }
-    else {
-        img = currentImageHelper.getCurrentImage();
-        if (!img || img.tagName != 'IMG') {
-            curImg.innerHTML = '';
-            img = document.createElement('img');
+    let container;
+
+    if (canUseSplit) {
+        container = curImg; // Wrapper
+        // Decide which image to show
+        let showLarge = !previewGrow && src && !src.includes('progress');
+        if (showLarge) {
+            img = largeImg;
+            largeImg.style.display = 'block';
+            previewImg.style.display = 'none';
         }
         else {
-            isReuse = true;
-            delete img.dataset.previewGrow;
-            img.removeAttribute('width');
-            img.removeAttribute('height');
+            img = previewImg;
+            largeImg.style.display = 'none';
+            previewImg.style.display = 'block';
         }
-        srcTarget = img;
-        container = img;
+        img.src = src;
     }
+    else {
+        // Fallback for video/audio or if structure is broken
+        if (largeImg) largeImg.remove();
+        if (previewImg) previewImg.remove();
+        if (document.getElementById('current_image_live_container')) document.getElementById('current_image_live_container').remove();
+        
+        let existingImg = curImg.querySelector('.current-image-img');
+        if (existingImg && existingImg.tagName == (isVideo ? 'VIDEO' : (isAudio ? 'AUDIO' : 'IMG'))) {
+            img = existingImg;
+        } else {
+            curImg.innerHTML = '';
+            if (isVideo) {
+                container = createDiv(null, 'video-container current-image-img');
+                img = document.createElement('video');
+                img.loop = true;
+                img.autoplay = true;
+                container.appendChild(img);
+                curImg.appendChild(container);
+            } else if (isAudio) {
+                img = document.createElement('audio');
+                img.controls = true;
+                curImg.appendChild(img);
+            } else {
+                img = document.createElement('img');
+                curImg.appendChild(img);
+            }
+            img.className = 'current-image-img';
+        }
+        
+        if (isVideo) {
+            img.innerHTML = ''; // Clear sources
+            let sourceObj = document.createElement('source');
+            sourceObj.type = isVideo;
+            sourceObj.src = src;
+            img.appendChild(sourceObj);
+            img.load();
+        } else {
+            img.src = src;
+        }
+    }
+
     function naturalDim() {
         if (isVideo) {
             return [img.videoWidth, img.videoHeight];
@@ -837,16 +845,23 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
             }
         }, false);
     }
-    srcTarget.src = src;
-    container.classList.add('current-image-img');
+
     img.id = 'current_image_img';
     img.dataset.src = src;
     img.dataset.metadata = metadata || '{}';
     img.dataset.batch_id = batchId;
     img.onclick = () => imageFullView.showImage(img.dataset.src, img.dataset.metadata, img.dataset.batch_id);
-    let extrasWrapper = document.getElementById('image_metadata_container');
-    if (extrasWrapper) {
-        extrasWrapper.innerHTML = '';
+
+    // Metadata and Buttons Logic
+    let metadataWrapper = document.getElementById('image_metadata_container');
+    let buttonsWrapper = document.getElementById('current_image_buttons');
+
+    if (!buttonsWrapper && metadataWrapper) {
+        buttonsWrapper = metadataWrapper;
+    }
+
+    if (buttonsWrapper) {
+        buttonsWrapper.innerHTML = '';
         let buttons = createDiv(null, 'current-image-buttons');
         let imagePathClean = getImageFullSrc(src);
         let buttonsChoice = getUserSetting('ButtonsUnderMainImages', '');
@@ -996,19 +1011,22 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
             if (added.href) { subButtons.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title }); }
             else { includeButton(added.label, added.onclick, '', added.title); }
         }
-        quickAppendButton(buttons, 'More &#x2B9F;', (e, button) => {
+        quickAppendButton(buttons, 'More ▾', (e, button) => {
             let rect = button.getBoundingClientRect();
             new AdvancedPopover('image_more_popover', subButtons, false, rect.x, rect.y + button.offsetHeight + 6, document.body, null);
         });
-        extrasWrapper.appendChild(buttons);
+        buttonsWrapper.appendChild(buttons);
+    }
+
+    // Metadata text
+    if (metadataWrapper) {
+        metadataWrapper.innerHTML = '';
         let data = createDiv(null, 'current-image-data');
         data.innerHTML = formatMetadata(metadata);
-        extrasWrapper.appendChild(data);
+        metadataWrapper.appendChild(data);
     }
-    if (!isReuse) {
-        curImg.appendChild(container);
-        if (isVideo) { new VideoControls(img); }
-    }
+
+    if (isVideo) { new VideoControls(img); }
     highlightSelectedImage(src);
 }
 
@@ -1019,8 +1037,7 @@ function highlightSelectedImage(src) {
         for (let i of batchContainer.getElementsByClassName('image-block')) {
             if (batchImg == i) {
                 i.classList.add('image-block-current');
-            }
-            else {
+            } else {
                 i.classList.remove('image-block-current');
             }
         }
@@ -1029,13 +1046,11 @@ function highlightSelectedImage(src) {
     if (historyContainer) {
         let normalizedSrc = getImageFullSrc(src);
         for (let i of historyContainer.getElementsByClassName('image-block')) {
-            // History browser images may have data-src (if clicked) or just data-name (if not clicked yet)
             let historyImgSrc = i.dataset.src || i.dataset.name;
             let normalizedHistorySrc = historyImgSrc ? getImageFullSrc(historyImgSrc) : null;
             if (normalizedHistorySrc && normalizedSrc == normalizedHistorySrc) {
                 i.classList.add('image-block-current');
-            }
-            else {
+            } else {
                 i.classList.remove('image-block-current');
             }
         }
@@ -1070,8 +1085,7 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
         let cache = modelIconUrlCache[model] || modelIconUrlCache[`${model}.safetensors`];
         if (model && cache) {
             imageSrc = cache;
-        }
-        else {
+        } else {
             imageSrc = 'imgs/model_placeholder.jpg';
         }
         div.dataset.is_placeholder = true;
@@ -1092,13 +1106,11 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
         srcTarget = sourceObj;
         sourceObj.type = isVideo;
         img.appendChild(sourceObj);
-    }
-    else if (isAudio) {
+    } else if (isAudio) {
         imageSrc = 'imgs/audio_placeholder.jpg';
         img = document.createElement('img');
         srcTarget = img;
-    }
-    else {
+    } else {
         img = document.createElement('img');
         srcTarget = img;
     }
@@ -1117,8 +1129,7 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
     }
     if (prepend) {
         container.prepend(div);
-    }
-    else {
+    } else {
         container.appendChild(div);
     }
     return div;
@@ -1174,9 +1185,10 @@ function imageInputHandler() {
                 let reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        parseMetadata(e.target.result, (data, metadata) => { setCurrentImage(data, metadata); });
-                    }
-                    catch (e) {
+                        parseMetadata(e.target.result, (data, metadata) => {
+                            setCurrentImage(data, metadata);
+                        });
+                    } catch (e) {
                         setCurrentImage(e.target.result, null);
                     }
                 }
