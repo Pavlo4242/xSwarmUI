@@ -44,11 +44,11 @@ class Permissions {
         }
         if (key.includes(',')) {
             for (let k of key.split(',')) {
-                if (!this.hasPermission(k)) {
-                    return false;
+                if (this.hasPermission(k)) {
+                    return true;
                 }
             }
-            return true;
+            return false;
         }
         return this.permissions[key] || this.permissions['*'];
     }

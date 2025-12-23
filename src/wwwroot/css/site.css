@@ -1183,3 +1183,27 @@ input[type="range"]::-moz-range-track {
     color: var(--text-soft);
     word-break: break-all;
 }
+/* Prevent color inversion/highlighting in side tabs */
+.input-sidebar .nav-link.active,
+.current_image_batch .nav-link.active,
+.sidebar-top-section .nav-link.active,
+.sidebar-bottom-section .nav-link.active {
+    background-color: var(--background-soft) !important;
+    color: var(--text) !important;
+    border-color: var(--light-border) var(--light-border) transparent var(--light-border) !important;
+    box-shadow: none !important;
+}
+
+/* Ensure the tab header container itself isn't inverting colors */
+.input-sidebar .nav-tabs,
+.current_image_batch .nav-tabs {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--light-border) !important;
+}
+
+/* Subtle hover state that doesn't flip to white/bright colors */
+.input-sidebar .nav-link:hover:not(.active),
+.current_image_batch .nav-link:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-strong) !important;
+}
