@@ -117,28 +117,46 @@ class ImageFullViewHelper {
         }
     }
 
-    detachImg() {
+detachImg() {
         let wrap = getRequiredElementById('imageview_modal_imagewrap');
+        // Only run custom logic if we are NOT using simple CSS centering
+        // But for the modal, we usually want custom JS zoom/pan.
+        
         if (wrap.style.textAlign == 'center') {
             let img = this.getImgOrContainer();
             wrap.style.textAlign = 'left';
+            
+            // Get natural dimensions
             let width = img.naturalWidth ?? img.videoWidth;
             let height = img.naturalHeight ?? img.videoHeight;
             let imgAspectRatio = width / height;
-            let wrapAspectRatio = wrap.offsetWidth / wrap.offsetHeight;
-            let targetWidth = wrap.offsetHeight * imgAspectRatio;
-            if (targetWidth > wrap.offsetWidth) {
-                img.style.top = `${(wrap.offsetHeight - (wrap.offsetWidth / imgAspectRatio)) / 2}px`;
-                img.style.height = `${(wrapAspectRatio / imgAspectRatio) * 100}%`;
+            
+            // Get container dimensions
+            let wrapWidth = wrap.offsetWidth;
+            let wrapHeight = wrap.offsetHeight;
+            let wrapAspectRatio = wrapWidth / wrapHeight;
+            
+            // IMPROVED FIT LOGIC
+            if (imgAspectRatio > wrapAspectRatio) {
+                // Image is wider than container
+                let targetHeight = wrapWidth / imgAspectRatio;
+                img.style.width = '100%';
+                img.style.height = `${targetHeight}px`; // Use pixels for precision
+                img.style.top = `${(wrapHeight - targetHeight) / 2}px`;
                 img.style.left = '0px';
             }
             else {
+                // Image is taller than container
+                let targetWidth = wrapHeight * imgAspectRatio;
+                img.style.height = '100%';
+                img.style.width = `${targetWidth}px`;
                 img.style.top = '0px';
-                img.style.left = `${(wrap.offsetWidth - targetWidth) / 2}px`;
-                img.style.height = `100%`;
+                img.style.left = `${(wrapWidth - targetWidth) / 2}px`;
             }
+            
             img.style.objectFit = '';
             img.style.maxWidth = '';
+            img.style.position = 'absolute'; // Ensure absolute positioning for drag
         }
     }
 

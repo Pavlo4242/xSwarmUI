@@ -104,21 +104,77 @@ class LoraHelper {
     /** Rebuild the bottom-bar LoRA listing UI to show the currently selected LoRAs. */
     rebuildUI() {
         let toRender = this.getLorasInput() ? this.selected : [];
-        let container = this.getUIListContainer();
+let container = this.getUIListContainer();
+        
+        // Clear removed items
+        // ... (Keep existing cleanup logic) ...
+
         for (let lora of toRender) {
             let renderElem = this.rendered[lora.name];
             if (renderElem) {
+                // Update existing
                 renderElem.weightInput.value = lora.weight;
-                renderElem.confinementInput.value = lora.confinement;
-                renderElem.fixSize();
+                if (renderElem.confinementInput) renderElem.confinementInput.value = lora.confinement;
             }
             else {
+                // CREATE NEW UI ELEMENT
                 let div = createDiv(null, 'preset-in-list');
                 div.dataset.lora_name = lora.name;
+                div.style.position = 'relative'; // For positioning tooltip
+
                 let nameSpan = document.createElement('span');
                 nameSpan.innerText = cleanModelName(lora.name);
                 nameSpan.className = 'lora-name';
+                nameSpan.style.cursor = 'help'; // Indicate hoverable
                 div.appendChild(nameSpan);
+
+                // --- NEW: HOVER PREVIEW LOGIC ---
+                let previewPopup = null;
+                nameSpan.addEventListener('mouseenter', () => {
+                    // Try to find model in core map to get image
+                    let modelData = null;
+                    // Helper to find model data in global coreModelMap
+                    for (let key in coreModelMap) {
+                        let found = coreModelMap[key].find(m => m.title == lora.name || m.name == lora.name);
+                        if (found) { modelData = found; break; }
+                    }
+
+                    if (modelData && modelData.preview_image) {
+                        previewPopup = document.createElement('div');
+                        previewPopup.className = 'lora-preview-popup';
+                        previewPopup.style.position = 'fixed'; // Use fixed to escape overflows
+                        previewPopup.style.zIndex = '99999';
+                        previewPopup.style.pointerEvents = 'none';
+                        previewPopup.style.background = 'var(--background-soft)';
+                        previewPopup.style.border = '1px solid var(--emphasis)';
+                        previewPopup.style.borderRadius = '4px';
+                        previewPopup.style.padding = '4px';
+                        previewPopup.style.boxShadow = '0 4px 8px rgba(0,0,0,0.5)';
+                        
+                        let img = document.createElement('img');
+                        img.src = modelData.preview_image;
+                        img.style.maxWidth = '200px';
+                        img.style.maxHeight = '200px';
+                        img.style.objectFit = 'contain';
+                        previewPopup.appendChild(img);
+
+                        document.body.appendChild(previewPopup);
+
+                        // Position logic
+                        let rect = nameSpan.getBoundingClientRect();
+                        previewPopup.style.left = rect.left + 'px';
+                        previewPopup.style.top = (rect.top - previewPopup.offsetHeight - 10) + 'px';
+                    }
+                });
+
+                nameSpan.addEventListener('mouseleave', () => {
+                    if (previewPopup) {
+                        previewPopup.remove();
+                        previewPopup = null;
+                    }
+                });
+                // --------------------------------
+
                 let weightInput = document.createElement('input');
                 weightInput.className = 'lora-weight-input';
                 weightInput.type = 'number';
@@ -248,16 +304,12 @@ class LoraHelper {
                 div.appendChild(weightInput);
                 div.appendChild(plusBtn);
                 div.appendChild(removeButton);
-                container.appendChild(div);
-                this.rendered[lora.name] = {
-                    div: div,
-                    weightInput: weightInput,
-                    confinementInput: confinementInput,
-                    removeButton: removeButton,
-                    fixSize: fixSize,
-                };
+               container.appendChild(div);
+                this.rendered[lora.name] = { div: div, weightInput: weightInput };
             }
         }
+    }
+}
         for (let lora of Object.keys(this.rendered)) {
             if (!this.selected.find(l => l.name == lora)) {
                 this.rendered[lora].div.remove();
