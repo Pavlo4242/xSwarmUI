@@ -886,6 +886,15 @@ function genpageLoad() {
     });
 }
 
+// ===== INITIALIZE GEN TAB LAYOUT =====
+var genTabLayout = new GenTabLayout();
+
+setTimeout(() => {
+    if (genTabLayout && typeof genTabLayout.init === 'function') {
+        genTabLayout.init();
+    }
+}, 100);
+
 
 
 class EnhancedLoRAManager {
@@ -937,6 +946,7 @@ class EnhancedLoRAManager {
             console.warn('LoRA Helper not ready, will retry...');
             setTimeout(() => this.hookLoraHelper(), 100);
             return;
+
         }
 
         const originalSelect = loraHelper.selectLora.bind(loraHelper);

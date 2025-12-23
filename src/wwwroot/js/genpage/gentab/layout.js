@@ -257,7 +257,7 @@ class GenTabLayout {
         document.addEventListener('mousemove', (e) => {
             if (!activeSplit) return;
 
-            const rootRect = this.t2iRootDiv.getBoundingClientRect();
+            const rootRect = t2iRootDiv.getBoundingClientRect();
             // Relative Y inside the main container
             const relY = e.clientY - rootRect.top;
             const totalH = rootRect.height;

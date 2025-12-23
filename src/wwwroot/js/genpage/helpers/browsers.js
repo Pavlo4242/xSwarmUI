@@ -759,6 +759,7 @@ class GenPageBrowserClass {
             this.headerPath.remove();
             this.headerCount.remove();
         }
+        if (!this.tree) this.tree = [];
         this.headerPath = this.genPath(path, this.upButton);
         this.headerBar.appendChild(this.headerPath);
         this.headerCount = createSpan(null, 'browser-header-count');
