@@ -1,5 +1,21 @@
 
-// ===== HELPER FUNCTIONS - MUST BE DEFINED FIRST =====
+// ===== UTILITY FUNCTIONS (Mocked or External) =====
+// Ensure these exist or are mocked to prevent ReferenceErrors
+//function fixTabHeights() {}
+//function tweakNegativePromptBox() {}
+//function dynamicSizeTextBox(elem) {}
+//function alignImageDataFormat() {}
+//function internalSiteJsGetUserSetting() { return true; }
+//function getParamMemoryDays() { return 30; }
+//function escapeHtml(text) {
+//    if (!text) return text;
+ //   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+//}
+//const browserUtil = { makeVisible: function() {} };
+
+
+// Replace lines 1-36 (Helper Functions) with:
+// ===== HELPER FUNCTIONS =====
 
 function getCookie(name) {
     let value = `; ${document.cookie}`;
@@ -19,21 +35,35 @@ function deleteCookie(name) {
     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
 
+/** * Safely gets an element by ID. Returns null if missing, preventing crashes.
+ */
 function getRequiredElementById(id) {
     const elem = document.getElementById(id);
-    if (!elem) console.warn(`Element not found: ${id}`);
+    if (!elem) {
+        console.warn(`Layout Element not found: ${id} - This feature may be disabled.`);
+        return null;
+    }
     return elem;
 }
 
-function findParentOfClass(elem, className) {
-    while (elem && elem.parentElement) {
-        elem = elem.parentElement;
-        if (elem.classList && elem.classList.contains(className)) {
-            return elem;
+function findParentOfClass(element, className) {
+    while (element && element !== document) {
+        if (element.classList && element.classList.contains(className)) {
+            return element;
         }
+        element = element.parentNode;
     }
     return null;
 }
+
+function triggerChangeFor(element) {
+    if (element) {
+        element.dispatchEvent(new Event('change'));
+    }
+}
+
+// ===== UTILITY FUNCTIONS (Mocked or External) =====
+// Ensure these exist or are mocked to prevent ReferenceErrors
 // ========================================
 // FILE 1: layout.js - Replace injectLayoutCSS function ONLY
 // ========================================
@@ -240,8 +270,8 @@ function injectLayoutCSS() {
 
 
 
-// ===== MOVABLE TAB CLASS =====
-
+// Replace the entire MovableGenTab class (lines 243-317) with:
+/** Data about a tab within the Generate UI that can be moved to different containers. */
 class MovableGenTab {
     constructor(navLink, handler) {
         this.handler = handler;
@@ -260,7 +290,8 @@ class MovableGenTab {
     clickOn(e) {
         e.preventDefault();
         this.setSelected();
-        for (let tab of this.handler.managedTabs.filter(t => t.currentGroup.id == this.currentGroup.id && t.id != this.id)) {
+        // Filter out this tab and set others to not selected
+        for (let tab of this.handler.managedTabs.filter(t => t.currentGroup && t.currentGroup.id == this.currentGroup.id && t.id != this.id)) {
             tab.setNotSelected();
         }
         setTimeout(() => {
@@ -270,888 +301,518 @@ class MovableGenTab {
 
     setNotSelected() {
         this.navElem.classList.remove('active');
-        this.contentElem.classList.remove('active');
-        this.contentElem.classList.remove('show');
+        if (this.contentElem) {
+            this.contentElem.classList.remove('active');
+            this.contentElem.classList.remove('show');
+        }
     }
 
     setSelected() {
         this.navElem.classList.add('active');
-        this.contentElem.classList.add('active');
-        this.contentElem.classList.add('show');
+        if (this.contentElem) {
+            this.contentElem.classList.add('active');
+            this.contentElem.classList.add('show');
+        }
     }
 
     clickOther() {
+        if (!this.navElem.parentElement) return;
         let nextTab = this.navElem.parentElement.nextElementSibling || this.navElem.parentElement.previousElementSibling;
         if (nextTab) {
-            nextTab.querySelector('.nav-link').click();
+            let link = nextTab.querySelector('.nav-link');
+            if (link) link.click();
         }
     }
 
     update() {
+        // Validation: If the target group doesn't exist (e.g., ID changed in HTML), reset to default
+        let potentialGroup = getRequiredElementById(this.targetGroupId);
+        if (!potentialGroup) {
+            console.log(`Resetting tab ${this.id} to default location because ${this.targetGroupId} is missing.`);
+            this.targetGroupId = this.defaultGroup.id;
+            potentialGroup = this.defaultGroup;
+        }
+
         if (this.targetGroupId != this.currentGroup.id) {
             if (this.visible && this.navElem.classList.contains('active')) {
                 this.clickOther();
                 this.setNotSelected();
             }
-            this.currentGroup = getRequiredElementById(this.targetGroupId);
-            this.currentGroup.appendChild(this.navElem.parentElement);
-            let newContentContainer = getRequiredElementById(this.currentGroup.dataset.content);
-            newContentContainer.appendChild(this.contentElem);
-            if (this.visible && [...this.currentGroup.querySelectorAll('.nav-link')].length == 1) {
-                this.navElem.click();
+            this.currentGroup = potentialGroup;
+            if (this.currentGroup) {
+                this.currentGroup.appendChild(this.navElem.parentElement);
+                
+                // Move content container
+                if (this.contentElem) {
+                    let newContentContainer = getRequiredElementById(this.currentGroup.dataset.content);
+                    if (newContentContainer) {
+                        newContentContainer.appendChild(this.contentElem);
+                    }
+                }
+
+                if (this.visible && [...this.currentGroup.querySelectorAll('.nav-link')].length == 1) {
+                    this.navElem.click();
+                }
             }
         }
+
+        // Update Cookie
         if (this.targetGroupId != this.defaultGroup.id) {
             setCookie(`tabloc_${this.id}`, this.targetGroupId, 365);
-        }
-        else {
+        } else {
             deleteCookie(`tabloc_${this.id}`);
         }
+
+        // Update Visibility
         if (!this.visible && this.navElem.classList.contains('active')) {
             this.clickOther();
             this.setNotSelected();
         }
+        
         this.navElem.style.display = this.visible ? '' : 'none';
-        this.contentElem.style.display = this.visible ? '' : 'none';
+        if (this.contentElem) {
+            this.contentElem.style.display = this.visible ? '' : 'none';
+        }
     }
 }
 
-// ===== MAIN LAYOUT CLASS =====
 
+** Central handler for generate main tab layout logic. */
 class GenTabLayout {
     constructor() {
-        this.managedTabContainers = [];
-        this.managedTabs = [];
+        // Safe getters for all elements
+        this.leftSplitBar = getRequiredElementById('t2i-top-split-bar');
+        this.rightSplitBar = getRequiredElementById('t2i-top-2nd-split-bar');
+        this.leftSplitBarButton = getRequiredElementById('t2i-top-split-quickbutton');
+        this.bottomSplitBar = getRequiredElementById('t2i-mid-split-bar');
+        this.bottomSplitBarButton = getRequiredElementById('t2i-mid-split-quickbutton');
+        this.topSection = getRequiredElementById('t2i_top_bar');
+        this.bottomInfoBar = getRequiredElementById('bottom_info_bar');
+        this.bottomBar = getRequiredElementById('t2i_bottom_bar');
+        this.inputSidebar = getRequiredElementById('input_sidebar');
+        this.mainImageArea = getRequiredElementById('main_image_area');
+        this.currentImage = getRequiredElementById('current_image');
+        this.mainInputsArea = getRequiredElementById('main_inputs_area_wrapper');
+        this.currentImageWrapbox = getRequiredElementById('current_image_wrapbox');
+        this.currentImageBatch = getRequiredElementById('current_image_batch_wrapper');
+        this.currentImageBatchCore = getRequiredElementById('current_image_batch');
+        this.altRegion = getRequiredElementById('alt_prompt_region');
+        this.altText = getRequiredElementById('alt_prompt_textbox');
+        this.altNegText = getRequiredElementById('alt_negativeprompt_textbox');
+        this.altImageRegion = getRequiredElementById('alt_prompt_extra_area');
+        this.editorSizebar = getRequiredElementById('image_editor_sizebar');
+        this.layoutConfigArea = getRequiredElementById('layoutconfigarea');
+        this.toolContainer = getRequiredElementById('tool_container');
+        this.t2iRootDiv = getRequiredElementById('Text2Image');
+        this.quickToolsButton = getRequiredElementById('quicktools-button');
+
+        // Initialize state
         this.layoutResets = [];
-
-        const get = (id) => document.getElementById(id);
-
-        this.t2iRootDiv = get('Text2Image');
-        this.leftSplitBar = get('t2i-top-split-bar');
-        this.rightSplitBar = get('t2i-top-2nd-split-bar');
-        this.leftSplitBarButton = get('t2i-top-split-quickbutton');
-        this.bottomSplitBar = get('t2i-mid-split-bar');
-        this.bottomSplitBarButton = get('t2i-mid-split-quickbutton');
-        this.bottomBar = get('t2i_bottom_bar');
-        this.inputSidebar = get('input_sidebar');
-        this.mainImageArea = get('main_image_area');
-        this.currentImageBatch = get('current_image_batch_wrapper');
-        this.altRegion = get('alt_prompt_region');
-        this.layoutConfigArea = get('layoutconfigarea');
-        this.tabCollections = document.querySelectorAll('.swarm-gen-tab-subnav');
-
-        this.antiDup = false;
         this.leftShut = localStorage.getItem('barspot_leftShut') == 'true';
-        this.rightShut = localStorage.getItem('barspot_rightShut') == 'true';
         this.bottomShut = localStorage.getItem('barspot_midForceToBottom') == 'true';
-        
-        const leftCookie = getCookie('barspot_pageBarTop');
-        const rightCookie = getCookie('barspot_pageBarTop2');
-        const bottomCookie = getCookie('barspot_pageBarMidPx');
-        const leftSplitCookie = getCookie('barspot_leftSplit');
-        const rightSplitCookie = getCookie('barspot_rightSplit');
-        
-        this.leftSectionBarPos = leftCookie ? parseInt(leftCookie) : 448;
-        this.rightSectionBarPos = rightCookie ? parseInt(rightCookie) : 336;
-        this.bottomSectionBarPos = bottomCookie ? parseInt(bottomCookie) : 400;
-        this.leftSidebarSplit = leftSplitCookie ? parseFloat(leftSplitCookie) : 0.5;
-        this.rightSidebarSplit = rightSplitCookie ? parseFloat(rightSplitCookie) : 0.5;
-        
+        this.imageEditorBarPos = parseInt(getCookie('barspot_imageEditorSizeBar') || '-1');
+        this.leftSectionBarPos = parseInt(getCookie('barspot_pageBarTop') || '-1');
+        this.rightSectionBarPos = parseInt(getCookie('barspot_pageBarTop2') || '-1');
+        this.bottomSectionBarPos = parseInt(getCookie('barspot_pageBarMidPx') || '-1');
+        this.hideTabs = (getCookie('layout_hidetabs') || '').split(',');
         this.mobileDesktopLayout = localStorage.getItem('layout_mobileDesktop') || 'auto';
-        this.hideTabs = (getCookie('layout_hidetabs') || '').split(',').filter(x => x);
 
+        // Initialize Tabs
+        this.tabCollections = document.querySelectorAll('.swarm-gen-tab-subnav');
+        this.managedTabs = [...this.tabCollections].flatMap(e => [...e.querySelectorAll('.nav-link')]).map(e => new MovableGenTab(e, this));
+        this.managedTabContainers = [];
+
+        // State flags
         this.leftBarDrag = false;
         this.rightBarDrag = false;
         this.bottomBarDrag = false;
-        this.leftSplitDrag = false;
-        this.rightSplitDrag = false;
-
-        let currentPromptLoc = getCookie('tabloc_alt_prompt_region') || 'Prompt-Tab';
-        if (currentPromptLoc === 'Input-Sidebar-Main-Tab') {
-            currentPromptLoc = 'Prompt-Tab';
-        }
-
-        // --- PROMPT MOVABLE ---
-        this.promptMovable = {
-            id: 'alt_prompt_region',
-            title: 'Prompt & Generate',
-            targetGroupId: currentPromptLoc,
-            update: () => {
-                let target = getRequiredElementById(this.promptMovable.targetGroupId);
-                if (target && this.altRegion && this.altRegion.parentElement != target) {
-                    target.appendChild(this.altRegion);
-                    this.altRegion.style.position = 'relative';
-                    this.altRegion.style.width = '100%';
-                    this.altRegion.style.maxWidth = '100%';
-                    setCookie('tabloc_alt_prompt_region', this.promptMovable.targetGroupId, 365);
-                }
-            }
-        };
-
-        // --- METADATA MOVABLE ---
-        this.metadataWrapper = document.querySelector('.current-image-extras-wrapper');
-        if (this.metadataWrapper) {
-            this.metadataWrapper.id = 'movable_metadata_region'; 
-            let currentMetaLoc = getCookie('tabloc_movable_metadata_region') || 'Main-Image-Area';
-
-            this.metadataMovable = {
-                id: 'movable_metadata_region',
-                title: 'Image Metadata & Buttons',
-                targetGroupId: currentMetaLoc,
-                update: () => {
-                    let target;
-                    if (this.metadataMovable.targetGroupId === 'Main-Image-Area') {
-                         target = document.querySelector('.current_image_wrapbox');
-                    } else {
-                        target = getRequiredElementById(this.metadataMovable.targetGroupId);
-                    }
-
-                    if (target && this.metadataWrapper && this.metadataWrapper.parentElement != target) {
-                        target.appendChild(this.metadataWrapper);
-                        setCookie('tabloc_movable_metadata_region', this.metadataMovable.targetGroupId, 365);
-                    }
-                }
-            };
-        }
-
-        this.managedTabs = [...this.tabCollections].flatMap(e => [...e.querySelectorAll('.nav-link')]).map(e => new MovableGenTab(e, this));
-        
+        this.imageEditorSizeBarDrag = false;
         this.isSmallWindow = this.mobileDesktopLayout == 'auto' ? window.innerWidth < 768 : this.mobileDesktopLayout == 'mobile';
+        this.antiDup = false;
 
-        this.createSidebarSplitBars();
-        
-        console.log('GenTabLayout constructed with:', {
-            left: this.leftSectionBarPos,
-            right: this.rightSectionBarPos,
-            bottom: this.bottomSectionBarPos
-        });
-    }
-
-    // NEW: Function to rescue modals from sidebar stacking contexts
-    fixModals() {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            // Move modals to body if they are currently nested elsewhere
-            if (modal.parentElement !== document.body) {
-                document.body.appendChild(modal);
-                console.log('Moved modal to body:', modal.id);
-            }
-        });
-    }
-
-    createSidebarSplitBars() {
-        // Left sidebar split bar
-        if (!document.getElementById('left-sidebar-split-bar')) {
-            this.leftSidebarSplitBar = document.createElement('div');
-            this.leftSidebarSplitBar.id = 'left-sidebar-split-bar';
-            this.leftSidebarSplitBar.style.cssText = `
-                position: absolute;
-                left: 0;
-                width: 100%;
-                height: 12px;
-                cursor: row-resize;
-                background: rgba(100, 120, 180, 0.25);
-                z-index: 1001;
-                display: none;
-                border-top: 2px solid rgba(100, 120, 180, 0.4);
-                border-bottom: 2px solid rgba(100, 120, 180, 0.4);
-                box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-                transition: background 0.2s ease;
-            `;
-            document.body.appendChild(this.leftSidebarSplitBar);
-        } else {
-            this.leftSidebarSplitBar = document.getElementById('left-sidebar-split-bar');
+        // Apply initial mobile/desktop logic
+        if (this.isSmallWindow) {
+            this.bottomShut = true;
+            this.leftShut = true;
+            this.rightSectionBarPos = 0;
         }
-
-        // Right sidebar split bar
-        if (!document.getElementById('right-sidebar-split-bar')) {
-            this.rightSidebarSplitBar = document.createElement('div');
-            this.rightSidebarSplitBar.id = 'right-sidebar-split-bar';
-            this.rightSidebarSplitBar.style.cssText = `
-                position: absolute;
-                right: 0;
-                width: 100%;
-                height: 12px;
-                cursor: row-resize;
-                background: rgba(100, 120, 180, 0.25);
-                z-index: 1001;
-                display: none;
-                border-top: 2px solid rgba(100, 120, 180, 0.4);
-                border-bottom: 2px solid rgba(100, 120, 180, 0.4);
-                box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-                transition: background 0.2s ease;
-            `;
-            document.body.appendChild(this.rightSidebarSplitBar);
-        } else {
-            this.rightSidebarSplitBar = document.getElementById('right-sidebar-split-bar');
-        }
-
-        // Enhanced hover effects with smooth transitions
-        this.leftSidebarSplitBar.addEventListener('mouseenter', () => {
-            this.leftSidebarSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-            this.leftSidebarSplitBar.style.borderTopColor = 'rgba(100, 150, 255, 0.8)';
-            this.leftSidebarSplitBar.style.borderBottomColor = 'rgba(100, 150, 255, 0.8)';
-        });
-        this.leftSidebarSplitBar.addEventListener('mouseleave', () => {
-            if (!this.leftSplitDrag) {
-                this.leftSidebarSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                this.leftSidebarSplitBar.style.borderTopColor = 'rgba(100, 120, 180, 0.4)';
-                this.leftSidebarSplitBar.style.borderBottomColor = 'rgba(100, 120, 180, 0.4)';
-            }
-        });
-        
-        this.rightSidebarSplitBar.addEventListener('mouseenter', () => {
-            this.rightSidebarSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-            this.rightSidebarSplitBar.style.borderTopColor = 'rgba(100, 150, 255, 0.8)';
-            this.rightSidebarSplitBar.style.borderBottomColor = 'rgba(100, 150, 255, 0.8)';
-        });
-        this.rightSidebarSplitBar.addEventListener('mouseleave', () => {
-            if (!this.rightSplitDrag) {
-                this.rightSidebarSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                this.rightSidebarSplitBar.style.borderTopColor = 'rgba(100, 120, 180, 0.4)';
-                this.rightSidebarSplitBar.style.borderBottomColor = 'rgba(100, 120, 180, 0.4)';
-            }
-        });
-    }
-
-    altPromptSizeHandle() {
-        if (!this.antiDup) {
-            this.antiDup = true;
-            this.reapplyPositions();
-            setTimeout(() => { this.antiDup = false; }, 1);
-        }
-    }
-
-    populateTabContainers() {
-        this.managedTabContainers = [];
-        for (let tab of this.managedTabs) {
-            if (tab.contentElem && tab.contentElem.parentElement) {
-                let container = tab.contentElem.parentElement;
-                if (!this.managedTabContainers.includes(container)) {
-                    this.managedTabContainers.push(container);
-                }
-            }
-        }
-        return this.managedTabContainers;
-    }
-
-    reapplyPositions() {
-        if (!this.t2iRootDiv) return;
-        
-        this.isSmallWindow = this.mobileDesktopLayout == 'auto' ? window.innerWidth < 768 : this.mobileDesktopLayout == 'mobile';
-        document.body.classList.toggle('small-window', this.isSmallWindow);
-        document.body.classList.toggle('large-window', !this.isSmallWindow);
-
-        const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-
-        // Calculate dimensions with bounds
-        let leftW = this.leftShut ? 0 : Math.max(100, Math.min(this.leftSectionBarPos, window.innerWidth - 400));
-        let rightW = this.rightShut ? 0 : Math.max(100, Math.min(this.rightSectionBarPos, window.innerWidth - 400));
-        let bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : 
-                       Math.max(100, Math.min(this.bottomSectionBarPos, window.innerHeight - 200));
-
-        // Prevent overlap
-        const maxTotalSidebarWidth = window.innerWidth - 300;
-        if (leftW + rightW > maxTotalSidebarWidth) {
-            const ratio = maxTotalSidebarWidth / (leftW + rightW);
-            leftW = Math.floor(leftW * ratio);
-            rightW = Math.floor(rightW * ratio);
-        }
-
-        const containerHeight = `calc(100vh - ${rootTop}px - ${bottomH}px)`;
-        const containerHeightPx = window.innerHeight - rootTop - bottomH;
-        const containerTop = `${rootTop}px`;
-
-        // CENTER WORK AREA - PROPERLY EXCLUDE BOTH SIDEBARS
-        if (this.mainImageArea) {
-            Object.assign(this.mainImageArea.style, {
-                position: 'absolute',
-                top: containerTop,
-                left: `${leftW}px`,
-                width: `calc(100vw - ${leftW + rightW}px)`,
-                height: containerHeight,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                zIndex: '10',
-                background: 'var(--body-bg)'
-            });
-        }
-
-        // LEFT SIDEBAR
-        if (this.inputSidebar) {
-            const leftSidebarContainers = this.inputSidebar.querySelectorAll('.tab-content');
-            const showLeftSplit = leftSidebarContainers.length >= 2 && !this.leftShut && !this.isSmallWindow;
-            
-            Object.assign(this.inputSidebar.style, {
-                position: 'absolute',
-                top: containerTop,
-                left: '0',
-                width: `${leftW}px`,
-                height: containerHeight,
-                display: this.leftShut ? 'none' : 'block',
-                overflowX: 'hidden',
-                overflowY: 'hidden',
-                zIndex: '20',
-                background: 'var(--bs-secondary-bg)',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
-            });
-
-            // Force wrapping on all child elements
-            const allChildren = this.inputSidebar.querySelectorAll('*');
-            allChildren.forEach(child => {
-                if (child.style) {
-                    child.style.wordWrap = 'break-word';
-                    child.style.overflowWrap = 'break-word';
-                    child.style.maxWidth = '100%';
-                    child.style.boxSizing = 'border-box';
-                }
-            });
-
-            if (showLeftSplit && leftSidebarContainers.length >= 2) {
-                const topHeight = Math.floor(containerHeightPx * this.leftSidebarSplit);
-                const bottomHeight = containerHeightPx - topHeight - 8;
-
-                leftSidebarContainers[0].style.height = `${topHeight}px`;
-                leftSidebarContainers[0].style.overflowY = 'auto';
-                leftSidebarContainers[0].style.overflowX = 'hidden';
-                leftSidebarContainers[0].style.wordWrap = 'break-word';
-                leftSidebarContainers[0].style.overflowWrap = 'break-word';
-                
-                leftSidebarContainers[1].style.height = `${bottomHeight}px`;
-                leftSidebarContainers[1].style.overflowY = 'auto';
-                leftSidebarContainers[1].style.overflowX = 'hidden';
-                leftSidebarContainers[1].style.marginTop = '8px';
-                leftSidebarContainers[1].style.wordWrap = 'break-word';
-                leftSidebarContainers[1].style.overflowWrap = 'break-word';
-
-                Object.assign(this.leftSidebarSplitBar.style, {
-                    top: `${rootTop + topHeight - 6}px`,
-                    left: '0',
-                    width: `${leftW}px`,
-                    display: 'block'
-                });
-            } else {
-                this.leftSidebarSplitBar.style.display = 'none';
-                leftSidebarContainers.forEach(container => {
-                    container.style.height = '100%';
-                    container.style.overflowY = 'auto';
-                    container.style.marginTop = '0';
-                    container.style.wordWrap = 'break-word';
-                    container.style.overflowWrap = 'break-word';
-                });
-            }
-        }
-
-        // RIGHT SIDEBAR
-        if (this.currentImageBatch) {
-            const rightSidebarContainers = this.currentImageBatch.querySelectorAll('.tab-content');
-            const showRightSplit = rightSidebarContainers.length >= 2 && !this.rightShut && !this.isSmallWindow;
-            
-            Object.assign(this.currentImageBatch.style, {
-                position: 'absolute',
-                top: containerTop,
-                right: '0',
-                width: `${rightW}px`,
-                height: containerHeight,
-                display: this.rightShut ? 'none' : 'block',
-                overflowX: 'hidden',
-                overflowY: 'hidden',
-                zIndex: '20',
-                background: 'var(--bs-secondary-bg)',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
-            });
-
-            // Force wrapping on all child elements
-            const allChildren = this.currentImageBatch.querySelectorAll('*');
-            allChildren.forEach(child => {
-                if (child.style) {
-                    child.style.wordWrap = 'break-word';
-                    child.style.overflowWrap = 'break-word';
-                    child.style.maxWidth = '100%';
-                    child.style.boxSizing = 'border-box';
-                }
-            });
-
-            if (showRightSplit && rightSidebarContainers.length >= 2) {
-                const topHeight = Math.floor(containerHeightPx * this.rightSidebarSplit);
-                const bottomHeight = containerHeightPx - topHeight - 8;
-
-                rightSidebarContainers[0].style.height = `${topHeight}px`;
-                rightSidebarContainers[0].style.overflowY = 'auto';
-                rightSidebarContainers[0].style.overflowX = 'hidden';
-                rightSidebarContainers[0].style.wordWrap = 'break-word';
-                rightSidebarContainers[0].style.overflowWrap = 'break-word';
-                
-                rightSidebarContainers[1].style.height = `${bottomHeight}px`;
-                rightSidebarContainers[1].style.overflowY = 'auto';
-                rightSidebarContainers[1].style.overflowX = 'hidden';
-                rightSidebarContainers[1].style.marginTop = '8px';
-                rightSidebarContainers[1].style.wordWrap = 'break-word';
-                rightSidebarContainers[1].style.overflowWrap = 'break-word';
-
-                Object.assign(this.rightSidebarSplitBar.style, {
-                    top: `${rootTop + topHeight - 6}px`,
-                    right: '0',
-                    width: `${rightW}px`,
-                    display: 'block'
-                });
-            } else {
-                this.rightSidebarSplitBar.style.display = 'none';
-                rightSidebarContainers.forEach(container => {
-                    container.style.height = '100%';
-                    container.style.overflowY = 'auto';
-                    container.style.marginTop = '0';
-                    container.style.wordWrap = 'break-word';
-                    container.style.overflowWrap = 'break-word';
-                });
-            }
-        }
-
-        // DRAG HANDLES - ENHANCED VISIBILITY
-        const barStyle = { 
-            position: 'absolute', 
-            zIndex: '1000', 
-            background: 'rgba(100, 120, 180, 0.25)',
-            transition: 'background 0.2s ease'
-        };
-        
-        if (this.leftSplitBar) {
-            const showLeftHandle = !this.isSmallWindow;
-            Object.assign(this.leftSplitBar.style, barStyle, { 
-                top: containerTop, 
-                left: `${leftW - 6}px`, 
-                width: '12px', 
-                height: containerHeight, 
-                cursor: 'col-resize', 
-                display: showLeftHandle ? 'block' : 'none',
-                borderLeft: '2px solid rgba(100, 120, 180, 0.4)',
-                borderRight: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.leftSplitBar.onmouseenter = () => {
-                this.leftSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.leftSplitBar.style.borderLeftColor = 'rgba(100, 150, 255, 0.8)';
-                this.leftSplitBar.style.borderRightColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.leftSplitBar.onmouseleave = () => {
-                if (!this.leftBarDrag) {
-                    this.leftSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.leftSplitBar.style.borderLeftColor = 'rgba(100, 120, 180, 0.4)';
-                    this.leftSplitBar.style.borderRightColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-        
-        if (this.rightSplitBar) {
-            const showRightHandle = !this.isSmallWindow;
-            Object.assign(this.rightSplitBar.style, barStyle, { 
-                top: containerTop, 
-                right: `${rightW - 6}px`, 
-                width: '12px', 
-                height: containerHeight, 
-                cursor: 'col-resize', 
-                display: showRightHandle ? 'block' : 'none',
-                borderLeft: '2px solid rgba(100, 120, 180, 0.4)',
-                borderRight: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.rightSplitBar.onmouseenter = () => {
-                this.rightSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.rightSplitBar.style.borderLeftColor = 'rgba(100, 150, 255, 0.8)';
-                this.rightSplitBar.style.borderRightColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.rightSplitBar.onmouseleave = () => {
-                if (!this.rightBarDrag) {
-                    this.rightSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.rightSplitBar.style.borderLeftColor = 'rgba(100, 120, 180, 0.4)';
-                    this.rightSplitBar.style.borderRightColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-        
-        if (this.bottomSplitBar) {
-            Object.assign(this.bottomSplitBar.style, barStyle, { 
-                position: 'fixed', 
-                bottom: `${bottomH - 6}px`, 
-                left: '0', 
-                width: '100vw', 
-                height: '12px', 
-                cursor: 'row-resize', 
-                display: this.isSmallWindow ? 'none' : 'block',
-                borderTop: '2px solid rgba(100, 120, 180, 0.4)',
-                borderBottom: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.bottomSplitBar.onmouseenter = () => {
-                this.bottomSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.bottomSplitBar.style.borderTopColor = 'rgba(100, 150, 255, 0.8)';
-                this.bottomSplitBar.style.borderBottomColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.bottomSplitBar.onmouseleave = () => {
-                if (!this.bottomBarDrag) {
-                    this.bottomSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.bottomSplitBar.style.borderTopColor = 'rgba(100, 120, 180, 0.4)';
-                    this.bottomSplitBar.style.borderBottomColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-
-        // BOTTOM BAR
-        if (this.bottomBar) {
-            Object.assign(this.bottomBar.style, {
-                position: 'fixed', 
-                bottom: '0', 
-                left: '0', 
-                width: '100vw', 
-                height: `${bottomH}px`,
-                zIndex: '500', 
-                background: 'var(--body-bg)', 
-                borderTop: '1px solid var(--border-color)',
-                overflowY: 'auto'
-            });
-        }
-
-        // TOGGLE BUTTONS
-        if (this.leftSplitBarButton) {
-            this.leftSplitBarButton.style.display = this.isSmallWindow ? 'none' : 'block';
-            this.leftSplitBarButton.innerHTML = this.leftShut ? '→' : '←';
-            this.leftSplitBarButton.title = this.leftShut ? 'Show Left Sidebar' : 'Hide Left Sidebar';
-        }
-
-        if (this.bottomSplitBarButton) {
-            this.bottomSplitBarButton.innerHTML = this.bottomShut ? '↑' : '↓';
-            this.bottomSplitBarButton.title = this.bottomShut ? 'Expand Bottom Bar' : 'Collapse Bottom Bar';
-        }
-
-        // Fix header visibility
-        for (let col of this.tabCollections) {
-            col.style.display = col.querySelectorAll('.nav-link').length > 0 ? '' : 'none';
-        }
-
-        // Save state
-        localStorage.setItem('barspot_leftShut', this.leftShut);
-        localStorage.setItem('barspot_rightShut', this.rightShut);
-        localStorage.setItem('barspot_midForceToBottom', this.bottomShut);
-        setCookie('barspot_pageBarTop', this.leftSectionBarPos, 365);
-        setCookie('barspot_pageBarTop2', this.rightSectionBarPos, 365);
-        setCookie('barspot_pageBarMidPx', this.bottomSectionBarPos, 365);
-        setCookie('barspot_leftSplit', this.leftSidebarSplit, 365);
-        setCookie('barspot_rightSplit', this.rightSidebarSplit, 365);
     }
 
     init() {
-        console.log('GenTabLayout init() called');
-        
-        // Inject CSS first
-        injectLayoutCSS();
-
-        // 1. Fix Modals (Move them out of sidebars/containers)
-        this.fixModals();
-
-        this.populateTabContainers();
-        
-        for (let tab of this.managedTabs) {
-            if (this.hideTabs.includes(tab.id)) tab.visible = false;
-            tab.update();
-        }
-
-        // SETUP DRAGGING
-        const startDrag = (e, type) => { 
-            this[type] = true; 
-            e.preventDefault();
-            const cursor = (type === 'bottomBarDrag' ? 'row-resize' : 
-                           (type === 'leftSplitDrag' || type === 'rightSplitDrag' ? 'row-resize' : 'col-resize'));
-            document.body.style.cursor = cursor;
-        };
-        
-        this.leftSplitBar?.addEventListener('mousedown', (e) => startDrag(e, 'leftBarDrag'));
-        this.rightSplitBar?.addEventListener('mousedown', (e) => startDrag(e, 'rightBarDrag'));
-        this.bottomSplitBar?.addEventListener('mousedown', (e) => {
-            if (e.target != this.bottomSplitBarButton) startDrag(e, 'bottomBarDrag');
-        });
-
-        this.leftSidebarSplitBar?.addEventListener('mousedown', (e) => startDrag(e, 'leftSplitDrag'));
-        this.rightSidebarSplitBar?.addEventListener('mousedown', (e) => startDrag(e, 'rightSplitDrag'));
-
-        document.addEventListener('mousemove', (e) => {
-            if (this.leftBarDrag) {
-                this.leftSectionBarPos = Math.max(100, Math.min(e.pageX, window.innerWidth - 400));
-                this.leftShut = false;
-                this.reapplyPositions();
-            }
-            if (this.rightBarDrag) {
-                const newWidth = window.innerWidth - e.pageX;
-                this.rightSectionBarPos = Math.max(100, Math.min(newWidth, window.innerWidth - 400));
-                this.rightShut = false;
-                this.reapplyPositions();
-            }
-            if (this.bottomBarDrag) {
-                this.bottomSectionBarPos = Math.max(100, Math.min(window.innerHeight - e.pageY, window.innerHeight - 100));
-                this.bottomShut = false;
-                this.reapplyPositions();
-            }
-            if (this.leftSplitDrag) {
-                const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-                const bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : this.bottomSectionBarPos;
-                const containerHeightPx = window.innerHeight - rootTop - bottomH;
-                const relativeY = e.pageY - rootTop;
-                this.leftSidebarSplit = Math.max(0.2, Math.min(0.8, relativeY / containerHeightPx));
-                this.reapplyPositions();
-            }
-            if (this.rightSplitDrag) {
-                const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-                const bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : this.bottomSectionBarPos;
-                const containerHeightPx = window.innerHeight - rootTop - bottomH;
-                const relativeY = e.pageY - rootTop;
-                this.rightSidebarSplit = Math.max(0.2, Math.min(0.8, relativeY / containerHeightPx));
-                this.reapplyPositions();
-            }
-        });
-
-        document.addEventListener('mouseup', () => { 
-            this.leftBarDrag = this.rightBarDrag = this.bottomBarDrag = false;
-            this.leftSplitDrag = this.rightSplitDrag = false;
-            document.body.style.cursor = 'default';
-            if (this.leftSidebarSplitBar) this.leftSidebarSplitBar.style.background = 'transparent';
-            if (this.rightSidebarSplitBar) this.rightSidebarSplitBar.style.background = 'transparent';
-        });
-
-        this.leftSplitBarButton?.addEventListener('click', () => { 
-            this.leftShut = !this.leftShut;
-            if (!this.leftShut && this.leftSectionBarPos <= 0) {
-                this.leftSectionBarPos = 448;
-            }
-            this.reapplyPositions(); 
-        });
-        
-        this.bottomSplitBarButton?.addEventListener('click', () => { 
-            this.bottomShut = !this.bottomShut; 
-            this.reapplyPositions(); 
-        });
-
-        // Add right sidebar toggle if missing
-        if (this.currentImageBatch && !document.getElementById('t2i-right-split-quickbutton')) {
-            const rightToggle = document.createElement('button');
-            rightToggle.id = 't2i-right-split-quickbutton';
-            rightToggle.innerHTML = this.rightShut ? '←' : '→';
-            rightToggle.className = 'btn btn-sm btn-secondary';
-            rightToggle.style.cssText = `
-                position: fixed;
-                top: 50%;
-                right: 10px;
-                z-index: 1002;
-                transform: translateY(-50%);
-                padding: 8px 12px;
-                font-size: 18px;
-            `;
-            rightToggle.title = this.rightShut ? 'Show Right Sidebar' : 'Hide Right Sidebar';
-            rightToggle.addEventListener('click', () => {
-                this.rightShut = !this.rightShut;
-                if (!this.rightShut && this.rightSectionBarPos <= 0) {
-                    this.rightSectionBarPos = 336;
+        if (this.managedTabs) {
+            for (let tab of this.managedTabs) {
+                if (tab.contentElem) {
+                    tab.contentElem.style.height = '100%';
+                    tab.contentElem.style.width = '100%';
+                    if (this.managedTabContainers && tab.contentElem.parentElement && !this.managedTabContainers.includes(tab.contentElem.parentElement)) {
+                        this.managedTabContainers.push(tab.contentElem.parentElement);
+                    }
+                    if (this.hideTabs && this.hideTabs.includes(tab.id)) {
+                        tab.visible = false;
+                    }
+                    tab.update();
+                    if (tab.navElem) {
+                        tab.navElem.addEventListener('click', () => {
+                            try { browserUtil.makeVisible(tab.contentElem); } catch(e) {}
+                        });
+                    }
                 }
-                rightToggle.innerHTML = this.rightShut ? '←' : '→';
-                rightToggle.title = this.rightShut ? 'Show Right Sidebar' : 'Hide Right Sidebar';
-                this.reapplyPositions();
-            });
-            document.body.appendChild(rightToggle);
+            }
         }
+        
+        this.reapplyPositions();
+        
+        // Add listeners safely
+        this.addSafeListener(this.leftSplitBar, 'mousedown', (e) => {
+            if (this.isSmallWindow) return;
+            this.leftBarDrag = true;
+            e.preventDefault();
+        });
 
-        window.addEventListener('resize', () => {
+        this.addSafeListener(this.rightSplitBar, 'mousedown', (e) => {
+            if (this.isSmallWindow) return;
+            this.rightBarDrag = true;
+            e.preventDefault();
+        });
+
+        this.addSafeListener(this.editorSizebar, 'mousedown', (e) => {
+            this.imageEditorSizeBarDrag = true;
+            e.preventDefault();
+        });
+
+        this.addSafeListener(this.bottomSplitBar, 'mousedown', (e) => {
+            if (this.isSmallWindow) return;
+            if (e.target == this.bottomSplitBarButton) return;
+            this.bottomBarDrag = true;
+            this.setBottomShut(false);
+            e.preventDefault();
+        });
+
+        this.addSafeListener(this.bottomSplitBarButton, 'click', (e) => {
+            e.preventDefault();
+            this.bottomBarDrag = false;
+            if (this.isSmallWindow) return;
+            this.setBottomShut(!this.bottomShut);
+            this.bottomSectionBarPos = Math.max(this.bottomSectionBarPos, 400);
             this.reapplyPositions();
         });
 
-        this.promptMovable.update();
-        if (this.metadataMovable) this.metadataMovable.update();
-        this.reapplyPositions();
-        this.buildConfigArea();
-
-        console.log('GenTabLayout initialized:', {
-            leftW: this.leftSectionBarPos,
-            rightW: this.rightSectionBarPos,
-            bottomH: this.bottomSectionBarPos
+        this.addSafeListener(this.leftSplitBarButton, 'click', (e) => {
+            e.preventDefault();
+            this.leftBarDrag = false;
+            if (this.isSmallWindow) return;
+            this.setLeftShut(!this.leftShut);
+            this.leftSectionBarPos = Math.max(this.leftSectionBarPos, 400);
+            this.reapplyPositions();
+            if (this.altText) triggerChangeFor(this.altText);
+            if (this.altNegText) triggerChangeFor(this.altNegText);
         });
+
+        document.addEventListener('mousemove', (e) => this.handleMove(e, e.pageX, e.pageY));
+        document.addEventListener('mouseup', () => {
+            this.leftBarDrag = false;
+            this.rightBarDrag = false;
+            this.bottomBarDrag = false;
+            this.imageEditorSizeBarDrag = false;
+        });
+
+        if (this.altText) {
+            this.altText.addEventListener('input', () => {
+                setCookie(`lastparam_input_prompt`, this.altText.value, getParamMemoryDays());
+                this.reapplyPositions();
+            });
+        }
+
+        if (this.altNegText) {
+            this.altNegText.addEventListener('input', () => {
+                setCookie(`lastparam_input_negativeprompt`, this.altNegText.value, getParamMemoryDays());
+                this.reapplyPositions();
+            });
+        }
+
+        try { this.buildConfigArea(); } catch(e) { console.warn("Config build failed", e); }
+    }
+
+    addSafeListener(elem, event, handler) {
+        if (elem) {
+            elem.addEventListener(event, handler, true);
+        }
+    }
+
+    handleMove(e, x, y) {
+        let offX = Math.min(Math.max(x, 100), window.innerWidth - 10);
+        
+        if (this.leftBarDrag) {
+            this.leftSectionBarPos = Math.min(offX - 3, 51 * 16);
+            this.setLeftShut(this.leftSectionBarPos < 290);
+            this.reapplyPositions();
+        }
+        if (this.rightBarDrag && this.rightSplitBar) {
+            this.rightSectionBarPos = window.innerWidth - offX;
+            if (this.rightSectionBarPos < 100) this.rightSectionBarPos = 22;
+            this.reapplyPositions();
+        }
+        if (this.imageEditorSizeBarDrag) {
+            let imageEditor = window.imageEditor;
+            if (imageEditor && imageEditor.inputDiv && this.currentImage) {
+                let maxAreaWidth = imageEditor.inputDiv.offsetWidth + this.currentImage.offsetWidth + 10;
+                let imageAreaLeft = imageEditor.inputDiv.getBoundingClientRect().left;
+                let val = Math.min(Math.max(x - imageAreaLeft + 3, 200), maxAreaWidth - 200);
+                this.imageEditorBarPos = Math.min(90, Math.max(10, val / maxAreaWidth * 100));
+                this.reapplyPositions();
+            }
+        }
+        if (this.bottomBarDrag && this.topSection) {
+            const MID_OFF = 85;
+            let refY = Math.min(Math.max(y, MID_OFF), window.innerHeight - MID_OFF);
+            this.setBottomShut(refY >= window.innerHeight - MID_OFF);
+            this.bottomSectionBarPos = window.innerHeight - refY + this.topSection.getBoundingClientRect().top + 3;
+            this.reapplyPositions();
+        }
+    }
+
+    reapplyPositions() {
+        this.isSmallWindow = this.mobileDesktopLayout == 'auto' ? window.innerWidth < 768 : this.mobileDesktopLayout == 'mobile';
+        if (this.isSmallWindow) {
+            document.body.classList.add('small-window');
+            document.body.classList.remove('large-window');
+        } else {
+            document.body.classList.remove('small-window');
+            document.body.classList.add('large-window');
+        }
+
+        try { fixTabHeights(); } catch(e) {}
+        try { tweakNegativePromptBox(); } catch(e) {}
+
+        if (this.altRegion && this.altRegion.style.display != 'none' && this.altText && this.altNegText) {
+            try { dynamicSizeTextBox(this.altText); } catch(e) {}
+            try { dynamicSizeTextBox(this.altNegText); } catch(e) {}
+            let offset = this.altText.offsetHeight + this.altNegText.offsetHeight;
+            if (this.altImageRegion) offset += this.altImageRegion.offsetHeight;
+            this.altRegion.style.top = `calc(-${offset}px - 1rem - 7px)`;
+        }
+
+        if (!this.t2iRootDiv) return;
+
+        let rootTop = this.t2iRootDiv.getBoundingClientRect().top;
+        if (this.quickToolsButton) {
+            this.quickToolsButton.style.top = `${rootTop - 18}px`;
+            this.quickToolsButton.style.right = this.isSmallWindow ? '0.5rem' : '';
+        }
+
+        setCookie('barspot_pageBarTop', this.leftSectionBarPos, 365);
+        setCookie('barspot_pageBarTop2', this.rightSectionBarPos, 365);
+        setCookie('barspot_pageBarMidPx', this.bottomSectionBarPos, 365);
+        setCookie('barspot_imageEditorSizeBar', this.imageEditorBarPos, 365);
+
+        if (this.toolContainer && this.toolContainer.parentElement) {
+            this.toolContainer.style.minHeight = `calc(100% - ${this.toolContainer.getBoundingClientRect().top - this.toolContainer.parentElement.getBoundingClientRect().top}px - 1.5rem)`;
+        }
+
+        let barTopLeft = this.leftShut ? `0px` : this.leftSectionBarPos == -1 ? (this.isSmallWindow ? `14rem` : `28rem`) : `${this.leftSectionBarPos}px`;
+        let barTopRight = this.rightSectionBarPos == -1 ? (this.isSmallWindow ? `4rem` : `21rem`) : `${this.rightSectionBarPos}px`;
+        let curImgWidth = `100vw - ${barTopLeft} - ${barTopRight} - 10px`;
+
+        if (this.isSmallWindow && this.altRegion && (this.rightSectionBarPos > 0 || !this.bottomShut)) {
+            this.altRegion.style.visibility = 'hidden';
+        } else if (this.altRegion) {
+            this.altRegion.style.visibility = '';
+        }
+
+        if (this.inputSidebar) {
+            this.inputSidebar.style.width = `${barTopLeft}`;
+            this.inputSidebar.style.display = this.leftShut ? 'none' : '';
+        }
+
+        if (this.altRegion) {
+            this.altRegion.style.width = `calc(100vw - ${barTopLeft} - ${barTopRight} - 10px)`;
+        }
+
+        if (this.mainImageArea) {
+            this.mainImageArea.style.width = `calc(100vw - ${barTopLeft})`;
+            this.mainImageArea.scrollTop = 0;
+        }
+
+        // Image Editor Logic
+        let imageEditor = window.imageEditor;
+        if (this.currentImage && this.currentImageWrapbox) {
+            if (imageEditor && imageEditor.active && imageEditor.inputDiv) {
+                let imageEditorSizePercent = this.imageEditorBarPos < 0 ? 0.5 : (this.imageEditorBarPos / 100.0);
+                imageEditor.inputDiv.style.width = `calc((${curImgWidth}) * ${imageEditorSizePercent})`;
+                this.currentImage.style.width = `calc((${curImgWidth}) * ${(1.0 - imageEditorSizePercent)} - 6px)`;
+            } else {
+                this.currentImage.style.width = `calc(${curImgWidth})`;
+            }
+            this.currentImageWrapbox.style.width = `calc(${curImgWidth})`;
+        }
+
+        if (this.currentImageBatch) {
+            this.currentImageBatch.style.width = `calc(${barTopRight} - 6px)`;
+        }
+
+        if (this.leftSplitBarButton) this.leftSplitBarButton.innerHTML = this.leftShut ? '&#x21DB;' : '&#x21DA;';
+        if (this.bottomSplitBarButton) this.bottomSplitBarButton.innerHTML = this.bottomShut ? '&#x290A;' : '&#x290B;';
+
+        // Height Logic
+        let altHeight = (this.altRegion && this.altRegion.style.display == 'none') ? '0px' : (this.altRegion ? `${this.altRegion.offsetHeight}px` : '0px');
+
+        if (this.bottomSectionBarPos != -1 || this.bottomShut) {
+            let bottomBarHeight = this.bottomInfoBar ? this.bottomInfoBar.offsetHeight : 0;
+            let addedHeight = this.isSmallWindow ? '0.4rem' : '2.8rem';
+            let fixed = this.bottomShut ? `(${rootTop}px + ${addedHeight} + ${bottomBarHeight}px)` : `${this.bottomSectionBarPos}px`;
+
+            const setHeight = (el, val) => { if (el) el.style.height = val; };
+            setHeight(this.leftSplitBar, `calc(100vh - ${fixed})`);
+            setHeight(this.rightSplitBar, `calc(100vh - ${fixed} - 5px)`);
+            setHeight(this.inputSidebar, `calc(100vh - ${fixed})`);
+            setHeight(this.mainImageArea, `calc(100vh - ${fixed})`);
+            setHeight(this.currentImageWrapbox, `calc(100vh - ${fixed} - ${altHeight})`);
+            setHeight(this.editorSizebar, `calc(100vh - ${fixed} - ${altHeight})`);
+            setHeight(this.currentImageBatch, `calc(100vh - ${fixed})`);
+            setHeight(this.topSection, `calc(100vh - ${fixed})`);
+            setHeight(this.bottomBar, `calc(${fixed} - 45px)`);
+        } else {
+            // Default 50/50 split if no prefs
+            const setHeight = (el, val) => { if (el) el.style.height = val; };
+            setHeight(this.leftSplitBar, 'calc(49vh)');
+            setHeight(this.rightSplitBar, 'calc(49vh)');
+            if (this.currentImageWrapbox) this.currentImageWrapbox.style.height = `calc(49vh - ${altHeight} + 1rem)`;
+            if (this.editorSizebar) this.editorSizebar.style.height = `calc(49vh - ${altHeight})`;
+            if (this.bottomBar) this.bottomBar.style.height = `calc(49vh - 30px)`;
+        }
+
+        if (imageEditor && imageEditor.resize) {
+            try { imageEditor.resize(); } catch(e) {}
+        }
+        try { alignImageDataFormat(); } catch(e) {}
+
+        if (this.tabCollections) {
+            for (let collection of this.tabCollections) {
+                collection.style.display = [...collection.querySelectorAll('.nav-link')].length > 1 ? '' : 'none';
+            }
+        }
+
+        if (this.managedTabContainers) {
+            for (let container of this.managedTabContainers) {
+                if (container.parentElement) {
+                    let offset = container.getBoundingClientRect().top - container.parentElement.getBoundingClientRect().top;
+                    container.style.height = `calc(100% - ${offset}px)`;
+                }
+            }
+        }
+
+        try { browserUtil.makeVisible(document); } catch(e) {}
+    }
+
+    setBottomShut(val) {
+        this.bottomShut = val;
+        localStorage.setItem('barspot_midForceToBottom', `${this.bottomShut}`);
+    }
+
+    setLeftShut(val) {
+        this.leftShut = val;
+        localStorage.setItem('barspot_leftShut', `${this.leftShut}`);
+    }
+
+    rebuildVisibleCookie() {
+        if (this.managedTabs) {
+            setCookie('layout_hidetabs', this.managedTabs.filter(t => !t.visible).map(t => t.id).join(','), 365);
+        }
+    }
+
+    updateConfigFor(id) {
+        if (!this.managedTabs) return;
+        let tab = this.managedTabs.find(t => t.id == id);
+        if (tab) {
+            let visibleElem = getRequiredElementById(`tabconfig_${id}_visible`);
+            let groupElem = getRequiredElementById(`tabconfig_${id}_group`);
+            if (visibleElem) tab.visible = visibleElem.checked;
+            if (groupElem) tab.targetGroupId = groupElem.value;
+            tab.update();
+            this.buildConfigArea();
+        }
     }
 
     buildConfigArea() {
-        if (!this.layoutConfigArea) return;
-        
-        let selectOptions = [...this.tabCollections].map(e => 
-            `<option value="${e.id}">${e.dataset.title || e.id}</option>`
-        ).join('');
-        
-        let html = `
-            <div class="p-3">
-                <h5>Layout Engine</h5>
-                <div class="mb-3">
-                    <button class="btn btn-sm btn-info me-2" onclick="genTabLayout.resetSplits()">Reset Splits</button>
-                    <button class="btn btn-sm btn-warning me-2" onclick="genTabLayout.resetSidebars()">Reset Sidebars</button>
-                    <button class="btn btn-sm btn-danger" onclick="genTabLayout.resetLayout()">Hard Reset UI</button>
-                </div>
-                <table class="table table-sm table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Element</th>
-                            <th>Location</th>
-                            <th>Visible</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="table-info">
-                            <td><b>Prompt Bar</b></td>
-                            <td>
-                                <select id="cfg_prompt_loc" class="form-select form-select-sm">
-                                    <option value="Input-Sidebar-Main-Tab">Left Sidebar (Default)</option>
-                                    <option value="Prompt-Tab">Bottom Bar</option>
-                                    <option value="rightsidebarcontent">Right Sidebar</option>
-                                </select>
-                            </td>
-                            <td>Always</td>
-                        </tr>
-                        <tr class="table-info">
-                            <td><b>Image Metadata</b></td>
-                            <td>
-                                <select id="cfg_metadata_loc" class="form-select form-select-sm">
-                                    <option value="Main-Image-Area">Main Image Area (Default)</option>
-                                    <option value="Input-Sidebar-Main-Tab">Left Sidebar</option>
-                                    <option value="Prompt-Tab">Bottom Bar</option>
-                                    <option value="rightsidebarcontent">Right Sidebar</option>
-                                </select>
-                            </td>
-                            <td>Always</td>
-                        </tr>
-                        `;
-        
-        for (let tab of this.managedTabs) {
-            html += `
-                <tr>
-                    <td>${tab.title}</td>
-                    <td>
-                        <select id="cfg_tab_loc_${tab.id}" class="form-select form-select-sm">
-                            ${selectOptions}
-                        </select>
-                    </td>
-                    <td class="text-center">
-                        <input type="checkbox" id="cfg_tab_vis_${tab.id}" ${tab.visible ? 'checked' : ''}>
-                    </td>
-                </tr>`;
+        if (!this.layoutConfigArea || !this.managedTabs) return;
+
+        let groups = this.managedTabs.map(t => t.defaultGroup).filter(g => g != null);
+        // Deduplicate groups by ID
+        let uniqueGroups = [];
+        let seenIds = new Set();
+        for (let g of groups) {
+            if (!seenIds.has(g.id)) {
+                uniqueGroups.push(g);
+                seenIds.add(g.id);
+            }
         }
-        
-        html += `
-                    </tbody>
-                </table>
-                <div class="mt-3">
-                    <h6>Current Settings</h6>
-                    <small>
-                        Left: ${this.leftSectionBarPos}px | 
-                        Right: ${this.rightSectionBarPos}px | 
-                        Bottom: ${this.bottomSectionBarPos}px<br>
-                        Left Split: ${(this.leftSidebarSplit * 100).toFixed(0)}% | 
-                        Right Split: ${(this.rightSidebarSplit * 100).toFixed(0)}%
-                    </small>
-                </div>
-            </div>`;
-        
+
+        let selectOptions = uniqueGroups.map(e => `<option value="${e.id}">${e.dataset ? escapeHtml(e.dataset.title) : e.id}</option>`).join('\n');
+
+        let html = '<table class="simple-table">\n<tr><th>Tab</th><th>Group</th><th>Visible</th></tr>\n';
+        for (let tab of this.managedTabs) {
+            html += `<tr>
+                <td><b>${escapeHtml(tab.title)}</b></td>
+                <td><select id="tabconfig_${tab.id}_group">${selectOptions}</select></td>
+                <td><input type="checkbox" id="tabconfig_${tab.id}_visible" ${tab.visible ? 'checked' : ''}></td>
+            </tr>`;
+        }
+        html += '</table>';
         this.layoutConfigArea.innerHTML = html;
 
-        const promptLoc = document.getElementById('cfg_prompt_loc');
-        if (promptLoc) {
-            promptLoc.value = this.promptMovable.targetGroupId;
-            promptLoc.onchange = (e) => { 
-                this.promptMovable.targetGroupId = e.target.value; 
-                this.promptMovable.update(); 
-                this.reapplyPositions(); 
-            };
-        }
-
-        const metaLoc = document.getElementById('cfg_metadata_loc');
-        if (metaLoc && this.metadataMovable) {
-            metaLoc.value = this.metadataMovable.targetGroupId;
-            metaLoc.onchange = (e) => { 
-                this.metadataMovable.targetGroupId = e.target.value; 
-                this.metadataMovable.update(); 
-                this.reapplyPositions(); 
-            };
-        }
-
         for (let tab of this.managedTabs) {
-            const loc = document.getElementById(`cfg_tab_loc_${tab.id}`);
-            if (loc) {
-                loc.value = tab.targetGroupId;
-                loc.onchange = (e) => { 
-                    tab.targetGroupId = e.target.value; 
-                    tab.update(); 
-                    this.buildConfigArea(); 
+            let groupElem = getRequiredElementById(`tabconfig_${tab.id}_group`);
+            let visibleElem = getRequiredElementById(`tabconfig_${tab.id}_visible`);
+
+            if (groupElem) {
+                groupElem.value = tab.targetGroupId;
+                groupElem.onchange = (e) => {
+                    let el = (e && e.target) ? e.target : e;
+                    if (!el) return;
+                    tab.targetGroupId = el.value;
+                    tab.update();
+                    this.buildConfigArea();
                 };
             }
-            
-            const vis = document.getElementById(`cfg_tab_vis_${tab.id}`);
-            if (vis) {
-                vis.onchange = (e) => { 
-                    tab.visible = e.target.checked; 
-                    tab.update(); 
-                    this.rebuildVisibleCookie(); 
-                    this.reapplyPositions(); 
+            if (visibleElem) {
+                visibleElem.onchange = (e) => {
+                    let el = (e && e.target) ? e.target : e;
+                    if (!el) return;
+                    tab.visible = el.checked;
+                    tab.update();
+                    this.rebuildVisibleCookie();
+                    this.reapplyPositions();
                 };
+            }
+        }
+        this.rebuildVisibleCookie();
+    }
+
+    resetSubTabs() {
+        if (confirm('Are you sure you want to reset the layout of the subtabs?\nThis will make all sub-tabs visible, and put them in their default locations.')) {
+            if (this.managedTabs) {
+                for (let tab of this.managedTabs) {
+                    if (tab.defaultGroup) {
+                        tab.targetGroupId = tab.defaultGroup.id;
+                        tab.visible = true;
+                        tab.update();
+                    }
+                }
+                this.reapplyPositions();
+                this.buildConfigArea();
             }
         }
     }
 
-    resetSplits() {
-        if (confirm("Reset sidebar splits to 50/50?")) {
-            this.leftSidebarSplit = 0.5;
-            this.rightSidebarSplit = 0.5;
+    onMobileDesktopLayoutChange() {
+        let selector = getRequiredElementById('mobile_desktop_layout_selector');
+        if (selector) {
+            this.mobileDesktopLayout = selector.value;
+            localStorage.setItem('layout_mobileDesktop', this.mobileDesktopLayout);
             this.reapplyPositions();
-            this.buildConfigArea();
         }
     }
-
-    resetSidebars() {
-        if (confirm("Reset sidebar widths to defaults?")) {
-            this.leftSectionBarPos = 448;
-            this.rightSectionBarPos = 336;
-            this.bottomSectionBarPos = 400;
-            this.leftShut = false;
-            this.rightShut = false;
-            this.bottomShut = false;
-            this.reapplyPositions();
-            this.buildConfigArea();
-        }
-    }
-
-    resetLayout() { 
-        if (confirm("Reset entire layout? This will reload the page.")) { 
-            localStorage.clear(); 
-            const cookies = ['barspot_pageBarTop', 'barspot_pageBarTop2', 'barspot_pageBarMidPx', 
-                           'barspot_leftSplit', 'barspot_rightSplit', 'layout_hidetabs', 
-                           'tabloc_movable_metadata_region'];
-            cookies.forEach(c => deleteCookie(c));
-            location.reload(); 
-        } 
-    }
-
-    rebuildVisibleCookie() { 
-        setCookie('layout_hidetabs', this.managedTabs.filter(t => !t.visible).map(t => t.id).join(','), 365); 
-    }
 }
-
-// ===== INITIALIZE =====
-var genTabLayout = new GenTabLayout();
-
-if (genTabLayout && !window.managedTabContainers) {
-    window.managedTabContainers = genTabLayout.managedTabContainers || [];
-}
-
-setTimeout(() => {
-    if (genTabLayout && typeof genTabLayout.init === 'function') {
-        genTabLayout.init();
-    }
-}, 100)
+// Replace lines 1146-1157 (Initialize section) with:
+let genTabLayout = new GenTabLayout();
+document.addEventListener('DOMContentLoaded', () => genTabLayout.init());
