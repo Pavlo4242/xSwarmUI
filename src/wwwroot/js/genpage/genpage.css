@@ -1935,35 +1935,3 @@ body {
     border: none !important;
     background-color: var(--background) !important;
 }
-/* Fallback visibility: Ensure sidebars are visible by default unless explicitly collapsed */
-.input-sidebar {
-    width: 28rem; /* Default fallback */
-    display: inline-flex;
-    flex-direction: column;
-}
-
-/* Only hide if specifically collapsed by JS */
-.input-sidebar.collapsed,
-.current_image_batch.collapsed {
-    display: none !important;
-}
-
-/* Ensure tab content takes up space even if empty */
-.tab-pane {
-    min-height: 50px;
-    height: 100%;
-}
-
-/* Ensure flex containers fill height */
-.main-image-area,
-.input-sidebar,
-.current_image_batch {
-    height: 100vh; /* Fallback */
-    height: calc(100vh - var(--footer-height, 0px));
-}
-
-/* Force sidebars to have background so they don't look empty */
-.input-sidebar, 
-.current_image_batch {
-    background-color: var(--background-panel, #222);
-}
