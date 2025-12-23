@@ -48,26 +48,34 @@ function injectLayoutCSS() {
             --sidebar-left-width: 28rem;
             --sidebar-right-width: 21rem;
             --sidebar-min-width: 10rem;
+            --footer-height: 0px; /* Dynamic based on bottom bar visibility */
         }
 
-        /* MASTER LAYOUT CONTAINER */
+        /* MASTER LAYOUT CONTAINER - Pure Flexbox */
         .t2i-top-bar {
             display: flex !important;
             flex-direction: row !important;
             width: 100vw !important;
-            height: 50vh !important;
+            height: calc(100vh - var(--footer-height)) !important;
             overflow: hidden !important;
-            white-space: nowrap;
+            position: relative !important;
         }
 
         /* LEFT SIDEBAR */
         .input-sidebar {
-            flex: 0 0 auto !important;
+            flex: 0 0 var(--sidebar-left-width) !important;
             width: var(--sidebar-left-width) !important;
+            max-width: 80vw;
             display: flex !important;
             flex-direction: column !important;
             border-right: 1px solid var(--border-color, #444);
-            transition: width 0.05s linear; /* Smooth resize */
+            transition: flex-basis 0.05s linear; /* Smooth resize */
+            background: var(--background-panel);
+            z-index: 20;
+        }
+        
+        .input-sidebar.collapsed {
+            display: none !important;
         }
 
         /* SPLITTERS */
@@ -78,7 +86,8 @@ function injectLayoutCSS() {
             background-color: var(--background-soft, #222);
             border-left: 1px solid var(--border-color, #444);
             border-right: 1px solid var(--border-color, #444);
-            z-index: 10;
+            z-index: 25;
+            user-select: none;
         }
         .t2i-top-split-bar:hover, .t2i-top-2nd-split-bar:hover {
             background-color: var(--emphasis, #007bff);
@@ -93,75 +102,29 @@ function injectLayoutCSS() {
             position: relative !important;
             height: 100% !important;
             background-color: var(--background, #111);
+            z-index: 10;
         }
 
         /* RIGHT SIDEBAR (BATCH) */
         .current_image_batch {
-            flex: 0 0 auto !important;
+            flex: 0 0 var(--sidebar-right-width) !important;
             width: var(--sidebar-right-width) !important;
+            max-width: 80vw;
             display: flex !important;
             flex-direction: column !important;
             border-left: 1px solid var(--border-color, #444);
-            transition: width 0.05s linear;
+            transition: flex-basis 0.05s linear;
+            background: var(--background-panel);
+            z-index: 20;
         }
 
-        /* IMAGE CENTERING FIX */
-        .current_image_wrapbox {
-            display: flex !important;
-            flex-direction: column !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-        }
-
-        .current_image {
-            flex-grow: 1 !important;
-            display: flex !important;
-            justify-content: center !important; /* Center Horizontally */
-            align-items: center !important;     /* Center Vertically */
-            overflow: hidden !important;
-            position: relative !important;
-            width: 100% !important;
-            height: 100% !important;
-            padding: 4px !important;
-        }
-
-        .current-image-img {
-            max-width: 100% !important;
-            max-height: 100% !important;
-            width: auto !important;
-            height: auto !important;
-            object-fit: contain !important;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        /* FIX: Metadata/Buttons area should not overlap image */
-        #current_image_buttons, #image_metadata_container {
-            flex-shrink: 0 !important;
-            width: 100% !important;
-            background: var(--background-soft, #222);
-            padding: 5px;
-            max-height: 30%;
-            overflow-y: auto;
-        }
-
-        /* INTERNAL SIDEBAR SPLITS (Vertical) */
-        .sidebar-top-section {
-            flex-grow: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar-bottom-section {
-            height: 30%; /* Default, controlled by JS */
-            min-height: 2rem;
-            display: flex;
-            flex-direction: column;
-            border-top: 1px solid var(--border-color, #444);
+        .current_image_batch.collapsed {
+            display: none !important;
         }
     `;
     document.head.appendChild(style);
 }
+
 
 // Improved GenTabLayout Class
 class GenTabLayout {
@@ -333,7 +296,7 @@ class GenTabLayout {
         }
     }
 
-    populateTabContainers() {
+ populateTabContainers() {
         this.managedTabContainers = [];
         for (let tab of this.managedTabs) {
             if (tab.contentElem && tab.contentElem.parentElement) {
@@ -346,305 +309,65 @@ class GenTabLayout {
         return this.managedTabContainers;
     }
 
-    reapplyPositions() {
+   // Updated reapplyPositions to use CSS Variables instead of manual pixel math
+reapplyPositions() {
         if (!this.t2iRootDiv) return;
         
+        // 1. Determine Visibility
         this.isSmallWindow = this.mobileDesktopLayout == 'auto' ? window.innerWidth < 768 : this.mobileDesktopLayout == 'mobile';
         document.body.classList.toggle('small-window', this.isSmallWindow);
         document.body.classList.toggle('large-window', !this.isSmallWindow);
 
-        const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-
-        // Calculate dimensions with bounds
-        let leftW = this.leftShut ? 0 : Math.max(100, Math.min(this.leftSectionBarPos, window.innerWidth - 400));
-        let rightW = this.rightShut ? 0 : Math.max(100, Math.min(this.rightSectionBarPos, window.innerWidth - 400));
+        // 2. Set Footer Height Variable
         let bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : 
                        Math.max(100, Math.min(this.bottomSectionBarPos, window.innerHeight - 200));
+        document.documentElement.style.setProperty('--footer-height', `${bottomH}px`);
 
-        // Prevent overlap
-        const maxTotalSidebarWidth = window.innerWidth - 300;
-        if (leftW + rightW > maxTotalSidebarWidth) {
-            const ratio = maxTotalSidebarWidth / (leftW + rightW);
-            leftW = Math.floor(leftW * ratio);
-            rightW = Math.floor(rightW * ratio);
+        // 3. Handle Sidebars via Classes
+        if (this.inputSidebar) {
+            if (this.leftShut) {
+                this.inputSidebar.classList.add('collapsed');
+                document.documentElement.style.setProperty('--sidebar-left-width', `0px`);
+            } else {
+                this.inputSidebar.classList.remove('collapsed');
+                let safeLeft = Math.max(100, Math.min(this.leftSectionBarPos, window.innerWidth * 0.6));
+                document.documentElement.style.setProperty('--sidebar-left-width', `${safeLeft}px`);
+            }
         }
 
-        const containerHeight = `calc(100vh - ${rootTop}px - ${bottomH}px)`;
-        const containerHeightPx = window.innerHeight - rootTop - bottomH;
-        const containerTop = `${rootTop}px`;
-
-        // CENTER WORK AREA - PROPERLY EXCLUDE BOTH SIDEBARS
-        if (this.mainImageArea) {
-            Object.assign(this.mainImageArea.style, {
-                position: 'absolute',
-                top: containerTop,
-                left: `${leftW}px`,
-                width: `calc(100vw - ${leftW + rightW}px)`,
-                height: containerHeight,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                zIndex: '10',
-                background: 'var(--body-bg)'
-            });
+        if (this.batchSidebar) {
+            if (this.rightShut) {
+                this.batchSidebar.classList.add('collapsed');
+                document.documentElement.style.setProperty('--sidebar-right-width', `0px`);
+            } else {
+                this.batchSidebar.classList.remove('collapsed');
+                let safeRight = Math.max(100, Math.min(this.rightSectionBarPos, window.innerWidth * 0.6));
+                document.documentElement.style.setProperty('--sidebar-right-width', `${safeRight}px`);
+            }
         }
 
-        // LEFT SIDEBAR
+        // 4. Handle Vertical Splits in Sidebars
+        const containerHeightPx = window.innerHeight - bottomH;
+
         if (this.inputSidebar) {
             const leftSidebarContainers = this.inputSidebar.querySelectorAll('.tab-content');
             const showLeftSplit = leftSidebarContainers.length >= 2 && !this.leftShut && !this.isSmallWindow;
             
-            Object.assign(this.inputSidebar.style, {
-                position: 'absolute',
-                top: containerTop,
-                left: '0',
-                width: `${leftW}px`,
-                height: containerHeight,
-                display: this.leftShut ? 'none' : 'block',
-                overflowX: 'hidden',
-                overflowY: 'hidden',
-                zIndex: '20',
-                background: 'var(--bs-secondary-bg)',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
-            });
-
-            // Force wrapping on all child elements
-            const allChildren = this.inputSidebar.querySelectorAll('*');
-            allChildren.forEach(child => {
-                if (child.style) {
-                    child.style.wordWrap = 'break-word';
-                    child.style.overflowWrap = 'break-word';
-                    child.style.maxWidth = '100%';
-                    child.style.boxSizing = 'border-box';
-                }
-            });
-
-            if (showLeftSplit && leftSidebarContainers.length >= 2) {
+            if (showLeftSplit) {
                 const topHeight = Math.floor(containerHeightPx * this.leftSidebarSplit);
-                const bottomHeight = containerHeightPx - topHeight - 8;
-
                 leftSidebarContainers[0].style.height = `${topHeight}px`;
-                leftSidebarContainers[0].style.overflowY = 'auto';
-                leftSidebarContainers[0].style.overflowX = 'hidden';
-                leftSidebarContainers[0].style.wordWrap = 'break-word';
-                leftSidebarContainers[0].style.overflowWrap = 'break-word';
-                
-                leftSidebarContainers[1].style.height = `${bottomHeight}px`;
-                leftSidebarContainers[1].style.overflowY = 'auto';
-                leftSidebarContainers[1].style.overflowX = 'hidden';
+                leftSidebarContainers[1].style.height = `${containerHeightPx - topHeight - 12}px`;
                 leftSidebarContainers[1].style.marginTop = '8px';
-                leftSidebarContainers[1].style.wordWrap = 'break-word';
-                leftSidebarContainers[1].style.overflowWrap = 'break-word';
-
-                Object.assign(this.leftSidebarSplitBar.style, {
-                    top: `${rootTop + topHeight - 6}px`,
-                    left: '0',
-                    width: `${leftW}px`,
-                    display: 'block'
-                });
-            } else {
-                this.leftSidebarSplitBar.style.display = 'none';
-                leftSidebarContainers.forEach(container => {
-                    container.style.height = '100%';
-                    container.style.overflowY = 'auto';
-                    container.style.marginTop = '0';
-                    container.style.wordWrap = 'break-word';
-                    container.style.overflowWrap = 'break-word';
-                });
-            }
-        }
-
-        // RIGHT SIDEBAR
-        if (this.currentImageBatch) {
-            const rightSidebarContainers = this.currentImageBatch.querySelectorAll('.tab-content');
-            const showRightSplit = rightSidebarContainers.length >= 2 && !this.rightShut && !this.isSmallWindow;
-            
-            Object.assign(this.currentImageBatch.style, {
-                position: 'absolute',
-                top: containerTop,
-                right: '0',
-                width: `${rightW}px`,
-                height: containerHeight,
-                display: this.rightShut ? 'none' : 'block',
-                overflowX: 'hidden',
-                overflowY: 'hidden',
-                zIndex: '20',
-                background: 'var(--bs-secondary-bg)',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
-            });
-
-            // Force wrapping on all child elements
-            const allChildren = this.currentImageBatch.querySelectorAll('*');
-            allChildren.forEach(child => {
-                if (child.style) {
-                    child.style.wordWrap = 'break-word';
-                    child.style.overflowWrap = 'break-word';
-                    child.style.maxWidth = '100%';
-                    child.style.boxSizing = 'border-box';
-                }
-            });
-
-            if (showRightSplit && rightSidebarContainers.length >= 2) {
-                const topHeight = Math.floor(containerHeightPx * this.rightSidebarSplit);
-                const bottomHeight = containerHeightPx - topHeight - 8;
-
-                rightSidebarContainers[0].style.height = `${topHeight}px`;
-                rightSidebarContainers[0].style.overflowY = 'auto';
-                rightSidebarContainers[0].style.overflowX = 'hidden';
-                rightSidebarContainers[0].style.wordWrap = 'break-word';
-                rightSidebarContainers[0].style.overflowWrap = 'break-word';
                 
-                rightSidebarContainers[1].style.height = `${bottomHeight}px`;
-                rightSidebarContainers[1].style.overflowY = 'auto';
-                rightSidebarContainers[1].style.overflowX = 'hidden';
-                rightSidebarContainers[1].style.marginTop = '8px';
-                rightSidebarContainers[1].style.wordWrap = 'break-word';
-                rightSidebarContainers[1].style.overflowWrap = 'break-word';
-
-                Object.assign(this.rightSidebarSplitBar.style, {
-                    top: `${rootTop + topHeight - 6}px`,
-                    right: '0',
-                    width: `${rightW}px`,
-                    display: 'block'
-                });
+                if (this.leftSidebarSplitBar) {
+                    this.leftSidebarSplitBar.style.display = 'block';
+                    this.leftSidebarSplitBar.style.top = `${this.t2iRootDiv.getBoundingClientRect().top + topHeight}px`;
+                    this.leftSidebarSplitBar.style.width = getComputedStyle(this.inputSidebar).width;
+                }
             } else {
-                this.rightSidebarSplitBar.style.display = 'none';
-                rightSidebarContainers.forEach(container => {
-                    container.style.height = '100%';
-                    container.style.overflowY = 'auto';
-                    container.style.marginTop = '0';
-                    container.style.wordWrap = 'break-word';
-                    container.style.overflowWrap = 'break-word';
-                });
+                if (this.leftSidebarSplitBar) this.leftSidebarSplitBar.style.display = 'none';
+                leftSidebarContainers.forEach(c => c.style.height = '');
             }
-        }
-
-        // DRAG HANDLES - ENHANCED VISIBILITY
-        const barStyle = { 
-            position: 'absolute', 
-            zIndex: '1000', 
-            background: 'rgba(100, 120, 180, 0.25)',
-            transition: 'background 0.2s ease'
-        };
-        
-        if (this.leftSplitBar) {
-            const showLeftHandle = !this.isSmallWindow;
-            Object.assign(this.leftSplitBar.style, barStyle, { 
-                top: containerTop, 
-                left: `${leftW - 6}px`, 
-                width: '12px', 
-                height: containerHeight, 
-                cursor: 'col-resize', 
-                display: showLeftHandle ? 'block' : 'none',
-                borderLeft: '2px solid rgba(100, 120, 180, 0.4)',
-                borderRight: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.leftSplitBar.onmouseenter = () => {
-                this.leftSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.leftSplitBar.style.borderLeftColor = 'rgba(100, 150, 255, 0.8)';
-                this.leftSplitBar.style.borderRightColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.leftSplitBar.onmouseleave = () => {
-                if (!this.leftBarDrag) {
-                    this.leftSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.leftSplitBar.style.borderLeftColor = 'rgba(100, 120, 180, 0.4)';
-                    this.leftSplitBar.style.borderRightColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-        
-        if (this.rightSplitBar) {
-            const showRightHandle = !this.isSmallWindow;
-            Object.assign(this.rightSplitBar.style, barStyle, { 
-                top: containerTop, 
-                right: `${rightW - 6}px`, 
-                width: '12px', 
-                height: containerHeight, 
-                cursor: 'col-resize', 
-                display: showRightHandle ? 'block' : 'none',
-                borderLeft: '2px solid rgba(100, 120, 180, 0.4)',
-                borderRight: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.rightSplitBar.onmouseenter = () => {
-                this.rightSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.rightSplitBar.style.borderLeftColor = 'rgba(100, 150, 255, 0.8)';
-                this.rightSplitBar.style.borderRightColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.rightSplitBar.onmouseleave = () => {
-                if (!this.rightBarDrag) {
-                    this.rightSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.rightSplitBar.style.borderLeftColor = 'rgba(100, 120, 180, 0.4)';
-                    this.rightSplitBar.style.borderRightColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-        
-        if (this.bottomSplitBar) {
-            Object.assign(this.bottomSplitBar.style, barStyle, { 
-                position: 'fixed', 
-                bottom: `${bottomH - 6}px`, 
-                left: '0', 
-                width: '100vw', 
-                height: '12px', 
-                cursor: 'row-resize', 
-                display: this.isSmallWindow ? 'none' : 'block',
-                borderTop: '2px solid rgba(100, 120, 180, 0.4)',
-                borderBottom: '2px solid rgba(100, 120, 180, 0.4)',
-                boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
-            });
-            
-            // Add hover effect
-            this.bottomSplitBar.onmouseenter = () => {
-                this.bottomSplitBar.style.background = 'rgba(100, 150, 255, 0.5)';
-                this.bottomSplitBar.style.borderTopColor = 'rgba(100, 150, 255, 0.8)';
-                this.bottomSplitBar.style.borderBottomColor = 'rgba(100, 150, 255, 0.8)';
-            };
-            this.bottomSplitBar.onmouseleave = () => {
-                if (!this.bottomBarDrag) {
-                    this.bottomSplitBar.style.background = 'rgba(100, 120, 180, 0.25)';
-                    this.bottomSplitBar.style.borderTopColor = 'rgba(100, 120, 180, 0.4)';
-                    this.bottomSplitBar.style.borderBottomColor = 'rgba(100, 120, 180, 0.4)';
-                }
-            };
-        }
-
-        // BOTTOM BAR
-        if (this.bottomBar) {
-            Object.assign(this.bottomBar.style, {
-                position: 'fixed', 
-                bottom: '0', 
-                left: '0', 
-                width: '100vw', 
-                height: `${bottomH}px`,
-                zIndex: '500', 
-                background: 'var(--body-bg)', 
-                borderTop: '1px solid var(--border-color)',
-                overflowY: 'auto'
-            });
-        }
-
-        // TOGGLE BUTTONS
-        if (this.leftSplitBarButton) {
-            this.leftSplitBarButton.style.display = this.isSmallWindow ? 'none' : 'block';
-            this.leftSplitBarButton.innerHTML = this.leftShut ? '→' : '←';
-            this.leftSplitBarButton.title = this.leftShut ? 'Show Left Sidebar' : 'Hide Left Sidebar';
-        }
-
-        if (this.bottomSplitBarButton) {
-            this.bottomSplitBarButton.innerHTML = this.bottomShut ? '↑' : '↓';
-            this.bottomSplitBarButton.title = this.bottomShut ? 'Expand Bottom Bar' : 'Collapse Bottom Bar';
-        }
-
-        // Fix header visibility
-        for (let col of this.tabCollections) {
-            col.style.display = col.querySelectorAll('.nav-link').length > 0 ? '' : 'none';
         }
 
         // Save state
@@ -656,8 +379,13 @@ class GenTabLayout {
         setCookie('barspot_pageBarMidPx', this.bottomSectionBarPos, 365);
         setCookie('barspot_leftSplit', this.leftSidebarSplit, 365);
         setCookie('barspot_rightSplit', this.rightSidebarSplit, 365);
-    }
 
+        // Fix header visibility
+        for (let col of this.tabCollections) {
+            col.style.display = col.querySelectorAll('.nav-link').length > 0 ? '' : 'none';
+        }
+    }
+    
     init() {
         console.log('GenTabLayout init() called');
         
