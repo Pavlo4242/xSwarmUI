@@ -44,389 +44,200 @@ function injectLayoutCSS() {
     const style = document.createElement('style');
     style.id = 'gen-tab-layout-css';
     style.textContent = `
-        /* GLOBAL: Force wrapping and sizing in Sidebars - EXCLUDING MODALS */
-        #input_sidebar :not(.modal):not(.modal *), 
-        #current_image_batch_wrapper :not(.modal):not(.modal *),
-        #alt_prompt_region :not(.modal):not(.modal *),
-        #movable_metadata_region :not(.modal):not(.modal *) {
-            word-wrap: break-word !important;
-            overflow-wrap: break-word !important;
-            box-sizing: border-box !important;
+        :root {
+            --sidebar-left-width: 28rem;
+            --sidebar-right-width: 21rem;
+            --sidebar-min-width: 10rem;
         }
 
-        #input_sidebar input, #input_sidebar textarea, #input_sidebar select,
-        #current_image_batch_wrapper input, #current_image_batch_wrapper textarea, #current_image_batch_wrapper select,
-        #alt_prompt_region input, #alt_prompt_region textarea, #alt_prompt_region select {
-            max-width: 100% !important;
+        /* MASTER LAYOUT CONTAINER */
+        .t2i-top-bar {
+            display: flex !important;
+            flex-direction: row !important;
+            width: 100vw !important;
+            height: 50vh !important;
+            overflow: hidden !important;
+            white-space: nowrap;
         }
 
-        /* FIX: PROMPT BOX COLOR (Use Theme Variables) */
-        #alt_prompt_region textarea {
-            background-color: var(--input-bg, var(--background-soft, #1a1a1a)) !important;
-            color: var(--text-color, var(--text, #ffffff)) !important;
-            border: 1px solid var(--border-color, var(--light-border, #666)) !important;
-            white-space: pre-wrap !important;
-        }
-        #alt_prompt_region {
-            background-color: transparent !important;
-        }
-
-        /* COMPACT PADDING */
-        #input_sidebar .card-body, #current_image_batch_wrapper .card-body {
-            padding: 4px !important;
-        }
-        #input_sidebar .form-group, #current_image_batch_wrapper .form-group {
-            margin-bottom: 4px !important;
-        }
-        .nav-tabs .nav-link {
-            padding: 4px 8px !important;
-            font-size: 0.85rem !important;
-        }
-
-        /* PREVENT HORIZONTAL SCROLL */
-        #input_sidebar .tab-content,
-        #current_image_batch_wrapper .tab-content {
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-            white-space: normal !important;
-            width: 100% !important;
-            padding: 2px !important;
-        }
-
-        /* FIX: COMPACT TREE VIEW (Match History Size) */
-        #current_image_batch_wrapper .jstree-node, 
-        #current_image_batch_wrapper .jstree-anchor,
-        #current_image_batch_wrapper .browser-folder-tree-part {
-            font-size: 11px !important;
-            line-height: 1.1 !important;
-            min-height: 16px !important;
-            white-space: nowrap !important;
-        }
-        
-        #current_image_batch_wrapper .jstree-anchor {
-            padding: 1px 2px !important;
-            height: auto !important;
-        }
-        
-        #current_image_batch_wrapper .jstree-icon {
-            background-size: 16px !important;
-            width: 16px !important;
-            height: 16px !important;
-        }
-
-        /* FIX: Better Scrollbars */
-        #current_image_batch_wrapper .browser-folder-tree-container::-webkit-scrollbar {
-            width: 8px;
-        }
-        #current_image_batch_wrapper .browser-folder-tree-container::-webkit-scrollbar-track {
-            background: var(--background, #1a1a1a);
-        }
-        #current_image_batch_wrapper .browser-folder-tree-container::-webkit-scrollbar-thumb {
-            background: var(--border-color, #666);
-            border-radius: 4px;
-        }
-        #current_image_batch_wrapper .browser-folder-tree-container::-webkit-scrollbar-thumb:hover {
-            background: var(--emphasis, #4a9eff);
-        }
-        #current_image_batch_wrapper .browser-folder-tree-container {
-            scrollbar-width: thin;
-            scrollbar-color: var(--border-color, #666) var(--background, #1a1a1a);
-        }
-
-        /* LORA WRAPPING */
-        .lora-tab-content {
-            height: auto !important;
-            min-height: 0 !important;
-            flex-grow: 1 !important;
+        /* LEFT SIDEBAR */
+        .input-sidebar {
+            flex: 0 0 auto !important;
+            width: var(--sidebar-left-width) !important;
             display: flex !important;
             flex-direction: column !important;
+            border-right: 1px solid var(--border-color, #444);
+            transition: width 0.05s linear; /* Smooth resize */
         }
-        .lora-chip-container {
+
+        /* SPLITTERS */
+        .t2i-top-split-bar, .t2i-top-2nd-split-bar {
+            flex: 0 0 5px !important;
+            width: 5px !important;
+            cursor: col-resize !important;
+            background-color: var(--background-soft, #222);
+            border-left: 1px solid var(--border-color, #444);
+            border-right: 1px solid var(--border-color, #444);
+            z-index: 10;
+        }
+        .t2i-top-split-bar:hover, .t2i-top-2nd-split-bar:hover {
+            background-color: var(--emphasis, #007bff);
+        }
+
+        /* CENTER MAIN IMAGE AREA */
+        .main-image-area {
+            flex: 1 1 0 !important; /* Grow to fill space */
+            min-width: 0 !important; /* Allow shrinking below content size */
             display: flex !important;
-            flex-wrap: wrap !important;
-            width: 100% !important;
-            gap: 2px !important;
-        }
-        .lora-chip {
-            white-space: normal !important;
-            word-break: break-word !important;
-            height: auto !important;
-            max-width: 100% !important;
-            font-size: 0.8rem !important;
-            margin: 0 !important;
-            padding: 2px 4px !important;
+            flex-direction: column !important;
+            position: relative !important;
+            height: 100% !important;
+            background-color: var(--background, #111);
         }
 
-        /* SELECTOR VISIBILITY */
-        #current_image_batch_wrapper select, 
-        #current_image_batch_wrapper .form-select,
-        .image-batch-view-select {
-            background-color: var(--input-bg, #1a1a1a) !important;
-            color: var(--text-color, #ffffff) !important;
-            border: 1px solid var(--border-color, #666) !important;
-            opacity: 1 !important;
-            font-weight: 600 !important;
-            padding: 2px 4px !important;
-            height: auto !important;
-            min-height: 28px !important;
-        }
-        #current_image_batch_wrapper select option {
-            background-color: var(--input-bg, #1a1a1a) !important;
-            color: var(--text-color, #ffffff) !important;
-        }
-
-        /* BROWSER CONTENT GRID */
-        .browser-content-container {
+        /* RIGHT SIDEBAR (BATCH) */
+        .current_image_batch {
+            flex: 0 0 auto !important;
+            width: var(--sidebar-right-width) !important;
             display: flex !important;
-            flex-wrap: wrap !important;
-            width: 100% !important;
-            align-content: flex-start !important;
-        }
-        .model-block, .image-block, .browser-list-entry {
-            max-width: 100% !important;
+            flex-direction: column !important;
+            border-left: 1px solid var(--border-color, #444);
+            transition: width 0.05s linear;
         }
 
-        /* CENTER IMAGE SIZING & METADATA FIXES */
-        #main_image_area .current_image_wrapbox {
+        /* IMAGE CENTERING FIX */
+        .current_image_wrapbox {
+            display: flex !important;
+            flex-direction: column !important;
             width: 100% !important;
             height: 100% !important;
-            overflow: auto !important; /* Allow scrolling for buttons/metadata */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            overflow: hidden !important;
         }
-        
-        #main_image_area .current_image {
-            width: 100% !important;
-            min-height: auto !important;
-            flex-grow: 1;
+
+        .current_image {
+            flex-grow: 1 !important;
             display: flex !important;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border: none !important;
+            justify-content: center !important; /* Center Horizontally */
+            align-items: center !important;     /* Center Vertically */
+            overflow: hidden !important;
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+            padding: 4px !important;
         }
 
         .current-image-img {
             max-width: 100% !important;
-            max-height: 80vh !important; /* Limit image height so buttons are visible */
-            object-fit: contain !important;
+            max-height: 100% !important;
             width: auto !important;
             height: auto !important;
-            flex-shrink: 1;
+            object-fit: contain !important;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-        
-        /* Force metadata/buttons wrapper to be visible */
-        #movable_metadata_region {
-            display: block !important;
+
+        /* FIX: Metadata/Buttons area should not overlap image */
+        #current_image_buttons, #image_metadata_container {
+            flex-shrink: 0 !important;
             width: 100% !important;
-            margin-top: 10px;
-            flex-shrink: 0;
-            padding: 10px;
-            background: var(--background-soft);
-            border-top: 1px solid var(--border-color);
+            background: var(--background-soft, #222);
+            padding: 5px;
+            max-height: 30%;
+            overflow-y: auto;
         }
-        
-        /* Style when in main area */
-        #main_image_area #movable_metadata_region {
-             max-width: 900px;
-             border: none;
-             background: transparent;
+
+        /* INTERNAL SIDEBAR SPLITS (Vertical) */
+        .sidebar-top-section {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-bottom-section {
+            height: 30%; /* Default, controlled by JS */
+            min-height: 2rem;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border-color, #444);
         }
     `;
     document.head.appendChild(style);
 }
 
-
-
-
-// ===== MOVABLE TAB CLASS =====
-
-class MovableGenTab {
-    constructor(navLink, handler) {
-        this.handler = handler;
-        this.navElem = navLink;
-        this.id = this.navElem.getAttribute('href').substring(1);
-        this.contentElem = getRequiredElementById(this.id);
-        this.title = this.navElem.innerText;
-        this.defaultGroup = findParentOfClass(this.navElem, 'swarm-gen-tab-subnav');
-        this.currentGroup = this.defaultGroup;
-        this.targetGroupId = getCookie(`tabloc_${this.id}`) || this.defaultGroup.id;
-        this.visible = true;
-        this.navElem.removeAttribute('data-bs-toggle');
-        this.navElem.addEventListener('click', this.clickOn.bind(this));
-    }
-
-    clickOn(e) {
-        e.preventDefault();
-        this.setSelected();
-        for (let tab of this.handler.managedTabs.filter(t => t.currentGroup.id == this.currentGroup.id && t.id != this.id)) {
-            tab.setNotSelected();
-        }
-        setTimeout(() => {
-            this.handler.reapplyPositions();
-        }, 1);
-    }
-
-    setNotSelected() {
-        this.navElem.classList.remove('active');
-        this.contentElem.classList.remove('active');
-        this.contentElem.classList.remove('show');
-    }
-
-    setSelected() {
-        this.navElem.classList.add('active');
-        this.contentElem.classList.add('active');
-        this.contentElem.classList.add('show');
-    }
-
-    clickOther() {
-        let nextTab = this.navElem.parentElement.nextElementSibling || this.navElem.parentElement.previousElementSibling;
-        if (nextTab) {
-            nextTab.querySelector('.nav-link').click();
-        }
-    }
-
-    update() {
-        if (this.targetGroupId != this.currentGroup.id) {
-            if (this.visible && this.navElem.classList.contains('active')) {
-                this.clickOther();
-                this.setNotSelected();
-            }
-            this.currentGroup = getRequiredElementById(this.targetGroupId);
-            this.currentGroup.appendChild(this.navElem.parentElement);
-            let newContentContainer = getRequiredElementById(this.currentGroup.dataset.content);
-            newContentContainer.appendChild(this.contentElem);
-            if (this.visible && [...this.currentGroup.querySelectorAll('.nav-link')].length == 1) {
-                this.navElem.click();
-            }
-        }
-        if (this.targetGroupId != this.defaultGroup.id) {
-            setCookie(`tabloc_${this.id}`, this.targetGroupId, 365);
-        }
-        else {
-            deleteCookie(`tabloc_${this.id}`);
-        }
-        if (!this.visible && this.navElem.classList.contains('active')) {
-            this.clickOther();
-            this.setNotSelected();
-        }
-        this.navElem.style.display = this.visible ? '' : 'none';
-        this.contentElem.style.display = this.visible ? '' : 'none';
-    }
-}
-
-// ===== MAIN LAYOUT CLASS =====
-
+// Improved GenTabLayout Class
 class GenTabLayout {
     constructor() {
-        this.managedTabContainers = [];
-        this.managedTabs = [];
-        this.layoutResets = [];
-
-        const get = (id) => document.getElementById(id);
-
-        this.t2iRootDiv = get('Text2Image');
-        this.leftSplitBar = get('t2i-top-split-bar');
-        this.rightSplitBar = get('t2i-top-2nd-split-bar');
-        this.leftSplitBarButton = get('t2i-top-split-quickbutton');
-        this.bottomSplitBar = get('t2i-mid-split-bar');
-        this.bottomSplitBarButton = get('t2i-mid-split-quickbutton');
-        this.bottomBar = get('t2i_bottom_bar');
-        this.inputSidebar = get('input_sidebar');
-        this.mainImageArea = get('main_image_area');
-        this.currentImageBatch = get('current_image_batch_wrapper');
-        this.altRegion = get('alt_prompt_region');
-        this.layoutConfigArea = get('layoutconfigarea');
-        this.tabCollections = document.querySelectorAll('.swarm-gen-tab-subnav');
-
-        this.antiDup = false;
-        this.leftShut = localStorage.getItem('barspot_leftShut') == 'true';
-        this.rightShut = localStorage.getItem('barspot_rightShut') == 'true';
-        this.bottomShut = localStorage.getItem('barspot_midForceToBottom') == 'true';
+        this.inputSidebar = getRequiredElementById('input_sidebar');
+        this.mainImageArea = getRequiredElementById('main_image_area');
+        this.batchSidebar = getRequiredElementById('current_image_batch_wrapper');
         
-        const leftCookie = getCookie('barspot_pageBarTop');
-        const rightCookie = getCookie('barspot_pageBarTop2');
-        const bottomCookie = getCookie('barspot_pageBarMidPx');
-        const leftSplitCookie = getCookie('barspot_leftSplit');
-        const rightSplitCookie = getCookie('barspot_rightSplit');
-        
-        this.leftSectionBarPos = leftCookie ? parseInt(leftCookie) : 448;
-        this.rightSectionBarPos = rightCookie ? parseInt(rightCookie) : 336;
-        this.bottomSectionBarPos = bottomCookie ? parseInt(bottomCookie) : 400;
-        this.leftSidebarSplit = leftSplitCookie ? parseFloat(leftSplitCookie) : 0.5;
-        this.rightSidebarSplit = rightSplitCookie ? parseFloat(rightSplitCookie) : 0.5;
-        
-        this.mobileDesktopLayout = localStorage.getItem('layout_mobileDesktop') || 'auto';
-        this.hideTabs = (getCookie('layout_hidetabs') || '').split(',').filter(x => x);
+        // Splitters
+        this.leftSplitter = getRequiredElementById('t2i-top-split-bar');
+        this.rightSplitter = getRequiredElementById('t2i-top-2nd-split-bar');
 
-        this.leftBarDrag = false;
-        this.rightBarDrag = false;
-        this.bottomBarDrag = false;
-        this.leftSplitDrag = false;
-        this.rightSplitDrag = false;
+        // Init State from Cookies or Defaults
+        this.leftWidth = parseInt(getCookie('layout_left_width') || 448); // approx 28rem
+        this.rightWidth = parseInt(getCookie('layout_right_width') || 336); // approx 21rem
 
-        let currentPromptLoc = getCookie('tabloc_alt_prompt_region') || 'Prompt-Tab';
-        if (currentPromptLoc === 'Input-Sidebar-Main-Tab') {
-            currentPromptLoc = 'Prompt-Tab';
-        }
-
-        // --- PROMPT MOVABLE ---
-        this.promptMovable = {
-            id: 'alt_prompt_region',
-            title: 'Prompt & Generate',
-            targetGroupId: currentPromptLoc,
-            update: () => {
-                let target = getRequiredElementById(this.promptMovable.targetGroupId);
-                if (target && this.altRegion && this.altRegion.parentElement != target) {
-                    target.appendChild(this.altRegion);
-                    this.altRegion.style.position = 'relative';
-                    this.altRegion.style.width = '100%';
-                    this.altRegion.style.maxWidth = '100%';
-                    setCookie('tabloc_alt_prompt_region', this.promptMovable.targetGroupId, 365);
-                }
-            }
-        };
-
-        // --- METADATA MOVABLE ---
-        this.metadataWrapper = document.querySelector('.current-image-extras-wrapper');
-        if (this.metadataWrapper) {
-            this.metadataWrapper.id = 'movable_metadata_region'; 
-            let currentMetaLoc = getCookie('tabloc_movable_metadata_region') || 'Main-Image-Area';
-
-            this.metadataMovable = {
-                id: 'movable_metadata_region',
-                title: 'Image Metadata & Buttons',
-                targetGroupId: currentMetaLoc,
-                update: () => {
-                    let target;
-                    if (this.metadataMovable.targetGroupId === 'Main-Image-Area') {
-                         target = document.querySelector('.current_image_wrapbox');
-                    } else {
-                        target = getRequiredElementById(this.metadataMovable.targetGroupId);
-                    }
-
-                    if (target && this.metadataWrapper && this.metadataWrapper.parentElement != target) {
-                        target.appendChild(this.metadataWrapper);
-                        setCookie('tabloc_movable_metadata_region', this.metadataMovable.targetGroupId, 365);
-                    }
-                }
-            };
-        }
-
-        this.managedTabs = [...this.tabCollections].flatMap(e => [...e.querySelectorAll('.nav-link')]).map(e => new MovableGenTab(e, this));
-        
-        this.isSmallWindow = this.mobileDesktopLayout == 'auto' ? window.innerWidth < 768 : this.mobileDesktopLayout == 'mobile';
-
-        this.createSidebarSplitBars();
-        
-        console.log('GenTabLayout constructed with:', {
-            left: this.leftSectionBarPos,
-            right: this.rightSectionBarPos,
-            bottom: this.bottomSectionBarPos
-        });
+        this.init();
     }
 
+    init() {
+        // Apply initial widths
+        this.applyWidths();
+
+        // Drag Handler Logic
+        this.setupDrag(this.leftSplitter, 'left');
+        this.setupDrag(this.rightSplitter, 'right');
+    }
+
+    applyWidths() {
+        document.documentElement.style.setProperty('--sidebar-left-width', `${this.leftWidth}px`);
+        document.documentElement.style.setProperty('--sidebar-right-width', `${this.rightWidth}px`);
+    }
+
+    setupDrag(splitter, side) {
+        let isDragging = false;
+
+        splitter.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault();
+            document.body.style.cursor = 'col-resize';
+            document.body.classList.add('user-select-none'); // Prevent text selection
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            if (side === 'left') {
+                // Calculate new left width
+                let newWidth = e.clientX;
+                // Constraints (Min 100px, Max 50% of screen)
+                newWidth = Math.max(100, Math.min(newWidth, window.innerWidth * 0.6));
+                this.leftWidth = newWidth;
+                document.documentElement.style.setProperty('--sidebar-left-width', `${this.leftWidth}px`);
+            } 
+            else if (side === 'right') {
+                // Calculate new right width (Window Width - Mouse X)
+                let newWidth = window.innerWidth - e.clientX;
+                // Constraints
+                newWidth = Math.max(100, Math.min(newWidth, window.innerWidth * 0.6));
+                this.rightWidth = newWidth;
+                document.documentElement.style.setProperty('--sidebar-right-width', `${this.rightWidth}px`);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.cursor = '';
+                document.body.classList.remove('user-select-none');
+                // Save State
+                setCookie('layout_left_width', this.leftWidth, 365);
+                setCookie('layout_right_width', this.rightWidth, 365);
+            }
+        });
+    }
+}
     // NEW: Function to rescue modals from sidebar stacking contexts
     fixModals() {
         const modals = document.querySelectorAll('.modal');
