@@ -236,10 +236,10 @@ class GenTabLayout {
                 setCookie('layout_right_width', this.rightWidth, 365);
             }
         });
-    }
+
 }
     // NEW: Function to rescue modals from sidebar stacking contexts
-    fixModals() {
+  fixModals(){
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
             // Move modals to body if they are currently nested elsewhere
@@ -249,7 +249,6 @@ class GenTabLayout {
             }
         });
     }
-
     createSidebarSplitBars() {
         // Left sidebar split bar
         if (!document.getElementById('left-sidebar-split-bar')) {
@@ -323,7 +322,8 @@ class GenTabLayout {
                 this.rightSidebarSplitBar.style.borderBottomColor = 'rgba(100, 120, 180, 0.4)';
             }
         });
-    }
+   
+}
 
     altPromptSizeHandle() {
         if (!this.antiDup) {
