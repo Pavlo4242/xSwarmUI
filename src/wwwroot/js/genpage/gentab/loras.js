@@ -1,4 +1,3 @@
-
 class SelectedLora {
     constructor(name, weight, confinement, model) {
         this.name = name;
@@ -104,10 +103,15 @@ class LoraHelper {
     /** Rebuild the bottom-bar LoRA listing UI to show the currently selected LoRAs. */
     rebuildUI() {
         let toRender = this.getLorasInput() ? this.selected : [];
-let container = this.getUIListContainer();
+        let container = this.getUIListContainer();
         
         // Clear removed items
-        // ... (Keep existing cleanup logic) ...
+        for (let lora of Object.keys(this.rendered)) {
+            if (!this.selected.find(l => l.name == lora)) {
+                this.rendered[lora].div.remove();
+                delete this.rendered[lora];
+            }
+        }
 
         for (let lora of toRender) {
             let renderElem = this.rendered[lora.name];
@@ -205,6 +209,7 @@ let container = this.getUIListContainer();
                 plusBtn.className = 'lora-ctrl-btn';
                 plusBtn.innerText = '+';
                 plusBtn.onclick = () => updateWeight(parseFloat(weightInput.value) + 0.1);
+                
                 let confinementInput = document.createElement('select');
                 confinementInput.add(new Option('@ Global', '0', true, true));
                 confinementInput.add(new Option('Base', '5'));
@@ -225,6 +230,7 @@ let container = this.getUIListContainer();
                     this.rebuildParams();
                     fixSize();
                 });
+                
                 let removeButton = createDiv(null, 'preset-remove-button');
                 removeButton.innerHTML = '&times;';
                 removeButton.title = "Remove this LoRA";
@@ -232,6 +238,7 @@ let container = this.getUIListContainer();
                     this.selectLora(lora);
                     sdLoraBrowser.rebuildSelectedClasses();
                 });
+                
                 let doShowLoraPopup = (isClick) => {
                     let popovers = document.getElementsByClassName('sui-popover-visible');
                     for (let popover of Array.from(popovers)) {
@@ -274,6 +281,7 @@ let container = this.getUIListContainer();
                         popup.style.pointerEvents = 'none';
                     }
                 };
+                
                 let hoverTimer = null;
                 let clearTimer = (hTimer) => {
                     if (hTimer) {
@@ -281,41 +289,38 @@ let container = this.getUIListContainer();
                         hoverTimer = null;
                     }
                 };
+                
                 nameSpan.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     clearTimer(hoverTimer);
                     doShowLoraPopup(true);
                 });
+                
                 nameSpan.addEventListener('mouseenter', (e) => {
                     hoverTimer = setTimeout(() => {
                         doShowLoraPopup(false);
                     }, 300);
                 });
+                
                 nameSpan.addEventListener('mouseleave', (e) => {
                     clearTimer(hoverTimer);
                     let popup = document.querySelector(`.sui-popover-visible[data-lora-name="${lora.name}"]`);
                     if (popup && popup.dataset.isClick != "true") {
                         popup.remove();
                     }
-               });
+                });
+                
                 div.appendChild(confinementInput);
                 div.appendChild(minusBtn);
                 div.appendChild(weightInput);
                 div.appendChild(plusBtn);
                 div.appendChild(removeButton);
-               container.appendChild(div);
-                this.rendered[lora.name] = { div: div, weightInput: weightInput };
+                container.appendChild(div);
+                this.rendered[lora.name] = { div: div, weightInput: weightInput, confinementInput: confinementInput };
             }
         }
-    }
-}
-        for (let lora of Object.keys(this.rendered)) {
-            if (!this.selected.find(l => l.name == lora)) {
-                this.rendered[lora].div.remove();
-                delete this.rendered[lora];
-            }
-        }
+        
         getRequiredElementById('current_loras_wrapper').style.display = toRender.length > 0 ? 'inline-block' : 'none';
         getRequiredElementById('lora_info_slot').innerText = ` (${toRender.length})`;
         setTimeout(() => {
@@ -420,4 +425,4 @@ let container = this.getUIListContainer();
     }
 }
 
-loraHelper = new LoraHelper();
+let loraHelper = new LoraHelper();
