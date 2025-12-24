@@ -629,21 +629,23 @@ function alignImageDataFormat() {
     if (!img) {
         return;
     }
+    
+    // CRITICAL FIX: Remove any inline sizing that breaks layout
     let curImgContainer = currentImageHelper.getCurrentImageContainer();
-    let extrasWrapper = document.getElementById('image_metadata_container');
-    if (!extrasWrapper) {
-        return;
+    if (curImgContainer) {
+        curImgContainer.style.maxWidth = '';
+        curImgContainer.style.maxHeight = '';
+        curImgContainer.style.width = '';
+        curImgContainer.style.height = '';
     }
-    let scale = img.dataset.previewGrow == 'true' ? 8 : 1;
-    let imgWidth = (img.naturalWidth ?? img.videoWidth) * scale;
-    let imgHeight = (img.naturalHeight ?? img.videoHeight) * scale;
-    let ratio = imgWidth / imgHeight;
-    let height = Math.min(imgHeight, curImg.offsetHeight);
-    let width = Math.min(imgWidth, height * ratio);
-    curImgContainer.style.maxWidth = `min(100%, ${width}px)`;
+    
+    // REMOVE the natural size forcing
+    img.removeAttribute('width');
+    img.removeAttribute('height');
+    
     curImg.classList.remove('current_image_small');
-    curImgContainer.style.maxHeight = `max(15rem, 100%)`;
 }
+
 
 function toggleStar(path, rawSrc) {
     genericRequest('ToggleImageStarred', {'path': path}, data => {
@@ -827,15 +829,17 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
             return [img.naturalWidth, img.naturalHeight];
         }
     }
-    img.onload = () => {
-        let [width, height] = naturalDim();
-        if (previewGrow || getUserSetting('centerimagealwaysgrow')) {
-            img.width = width * 8;
-            img.height = height * 8;
-            img.dataset.previewGrow = 'true';
-        }
-        alignImageDataFormat();
+img.onload = () => {
+    let [width, height] = naturalDim();
+    // CRITICAL FIX: Do NOT set explicit width/height
+    // Let CSS handle the sizing
+    if (previewGrow || getUserSetting('centerimagealwaysgrow')) {
+        img.dataset.previewGrow = 'true';
+    } else {
+        delete img.dataset.previewGrow;
     }
+    alignImageDataFormat();
+}
     if (isVideo || isAudio) {
         img.addEventListener('loadeddata', function() {
             if (img) {
@@ -1010,7 +1014,7 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
             if (added.href) { subButtons.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title }); }
             else { includeButton(added.label, added.onclick, '', added.title); }
         }
-        quickAppendButton(buttons, 'More ▾', (e, button) => {
+        quickAppendButton(buttons, 'More â–¾', (e, button) => {
             let rect = button.getBoundingClientRect();
             new AdvancedPopover('image_more_popover', subButtons, false, rect.x, rect.y + button.offsetHeight + 6, document.body, null);
         });
