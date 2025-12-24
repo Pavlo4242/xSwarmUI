@@ -1325,7 +1325,7 @@ class EnhancedLoRAManager {
             // Disable
             let disableBtn = document.createElement('button');
             disableBtn.className = 'lora-ctrl-btn';
-            disableBtn.innerHTML = '👁️';
+            disableBtn.innerHTML = 'ðŸ‘ï¸';
             disableBtn.title = 'Disable (Move to Disabled tab)';
             disableBtn.onclick = (e) => {
                 e.preventDefault();
@@ -1338,7 +1338,7 @@ class EnhancedLoRAManager {
             // Remove
             let removeBtn = document.createElement('button');
             removeBtn.className = 'lora-ctrl-btn';
-            removeBtn.innerHTML = '×';
+            removeBtn.innerHTML = 'Ã—';
             removeBtn.title = 'Remove completely';
             removeBtn.onclick = (e) => {
                 e.preventDefault();
@@ -1376,7 +1376,7 @@ class EnhancedLoRAManager {
             
             let enableBtn = document.createElement('button');
             enableBtn.className = 'lora-ctrl-btn';
-            enableBtn.innerHTML = '👁️';
+            enableBtn.innerHTML = 'ðŸ‘ï¸';
             enableBtn.title = "Re-enable";
             enableBtn.onclick = () => {
                 this.disabledLoras.splice(index, 1);
@@ -1387,7 +1387,7 @@ class EnhancedLoRAManager {
 
             let delBtn = document.createElement('button');
             delBtn.className = 'lora-ctrl-btn';
-            delBtn.innerHTML = '✖';
+            delBtn.innerHTML = 'âœ–';
             delBtn.title = "Remove";
             delBtn.onclick = () => {
                 this.disabledLoras.splice(index, 1);
