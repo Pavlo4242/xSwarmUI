@@ -13,7 +13,6 @@ body {
     width: 100%;
     border-radius: 0.5rem;
 }
-
 .generate-button {
     background-color: var(--button-background);
     color: var(--button-text);
@@ -150,7 +149,6 @@ body {
 .advanced_input_checkbox_presets {
     bottom: 0rem;
 }
-
 .main_inputs_area_wrapper {
     overflow-x: hidden;
     overflow-y: auto;
@@ -925,14 +923,13 @@ body {
     border-radius: 0.2rem;
 }
 .alt_prompt_region {
-    z-index: 10; /* Above preview */
-    background: var(--background-soft);
-    border: 2px solid var(--light-border);
-    border-radius: 0.8rem;
-    padding: 1rem;
-    margin: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    pointer-events: auto;
+    position: relative;
+    top: -3.5rem;
+    border-top: 1px solid var(--light-border);
+    width: fit-content;
+    padding-top: 0.5rem;
+    padding-bottom: 5px;
+    padding-left: 0.5rem;
 }
 .alt_prompt_main_line {
     display: flex;
@@ -953,9 +950,9 @@ body {
     color: color-mix(in srgb, var(--text) 50%, var(--background));
 }
 .alt_prompt_textboxes {
-    background: var(--input-bg, var(--background));
-    border-radius: 0.5rem;
-    padding: 0.5rem;
+    margin-left: 1rem;
+    display: inline-block;
+    flex-grow: 10;
 }
 .alt-text-tokencount-wrapper {
     position: relative;
@@ -1755,7 +1752,7 @@ body {
 }
 .current_image_batch:has(.sidebar-bottom-section ul.nav li) .sidebar-horizontal-split {
     display: block;
-}
+}}
 /* Prevent inversion/highlighting on sidebar tab headers */
 .input-sidebar .nav-tabs, 
 .current_image_batch .nav-tabs {
@@ -1810,128 +1807,4 @@ body {
     border: 1px solid var(--light-border) !important;
     border-top: 3px solid var(--emphasis) !important; /* Only use emphasis as a thin accent line */
     border-bottom-color: var(--background-soft) !important; /* Merges into the pane below */
-}
-
-/* 4. Stop Hover Inversion */
-.nav-tabs .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: var(--text-strong) !important;
-}
-
-/* 5. Force the main container areas to match */
-.main_inputs_area_wrapper, 
-#current_image_batch {
-    background-color: var(--background) !important;
-}
-/* --- Center Image Size Optimization --- */
-
-/* 1. Force the image wrapper to take up as much vertical space as possible */
-.current_image_wrapbox {
-    height: calc(100% - 2rem) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-}
-
-/* 2. Make the actual image expand to fill the dead space */
-.current-image-img {
-    max-height: 100% !important;
-    height: 100% !important;
-    width: 100% !important;
-    object-fit: contain !important; /* Keeps aspect ratio while filling space */
-    flex-grow: 1 !important;
-}
-
-/* 3. Tuck buttons under the image away (Tuck into Metadata) */
-/* This hides the quick-action buttons that usually sit between image and info bar */
-.current_image_wrapbox .basic-button, 
-.current_image_wrapbox .interrupt-button {
-    display: none !important;
-}
-
-/* 4. Shrink the Image/Metadata tab buttons to save vertical space */
-.main-image-area .nav-tabs .nav-link {
-    padding: 2px 8px !important;
-    font-size: 0.85rem !important;
-    min-height: unset !important;
-}
-
-/* 5. Remove padding/margins that create "dead space" gaps */
-.current_image {
-    padding: 0 !important;
-    border: none !important;
-    height: 100% !important;
-}
-
-/* 6. Ensure the main image area doesn't have internal scrolling gaps */
-.main-image-area {
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-.main-image-area .tab-content {
-    flex-grow: 1 !important;
-    height: unset !important;
-}
-
-/* --- Ultra-Compact Full-Image Layout --- */
-
-/* 1. Make the image container fill every available pixel */
-.current_image_wrapbox {
-    height: 100% !important;
-    display: block !important;
-    position: relative !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-}
-
-/* 2. Force the image to cover the entire background area */
-.current-image-img {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    object-fit: contain !important;
-    z-index: 1; /* Sits behind the buttons */
-}
-
-/* 3. Float the buttons over the image and hide them by default */
-.current_image_wrapbox .basic-button, 
-.current_image_wrapbox .interrupt-button,
-.current-image-data {
-    position: relative !important;
-    z-index: 10 !important; /* Sits on top of the image */
-    opacity: 0; /* Hidden by default */
-    transition: opacity 0.2s ease-in-out;
-}
-
-/* 4. Show buttons only on hover */
-.current_image_wrapbox:hover .basic-button, 
-.current_image_wrapbox:hover .interrupt-button,
-.current_image_wrapbox:hover .current-image-data {
-    opacity: 1;
-    background-color: rgba(0, 0, 0, 0.6) !important; /* Semi-transparent black background so you can see them over the photo */
-}
-
-/* 5. Shrink the Tab Bar significantly */
-.main-image-area .nav-tabs {
-    height: 24px !important;
-    min-height: 24px !important;
-    border: none !important;
-}
-
-.main-image-area .nav-link {
-    padding: 0 10px !important;
-    font-size: 11px !important;
-    line-height: 24px !important;
-    height: 24px !important;
-}
-
-/* 6. Remove internal area gaps */
-.current_image {
-    border: none !important;
-    background-color: var(--background) !important;
 }
