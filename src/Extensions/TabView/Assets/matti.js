@@ -222,8 +222,12 @@ class PreviewViewer {
         }
     }
 
+    // UPDATED: Now uses global getGenInput() to grab ALL parameters (Refiners, VAE, etc.)
     getPreviewInput() {
         let finalPrompt = this.dom.prompt.value;
+        
+        // Handle local LoRA sliders by baking them into the prompt
+        // (Swarm supports <lora:name:weight> syntax)
         if (this.dom.lorasContainer) {
             this.dom.lorasContainer.querySelectorAll('input[type="range"]').forEach(range => {
                 const weight = parseFloat(range.value);
@@ -232,11 +236,9 @@ class PreviewViewer {
         }
         
         const wantIntermediates = document.getElementById('input_outputintermediateimages')?.checked || false;
-        let sessId = localStorage.getItem('session_id');
-        if (typeof getSessionID === 'function') sessId = getSessionID();
-
-        return {
-            'session_id': sessId, 
+        
+        // Define our specific overrides from the Preview Tab UI
+        const overrides = {
             'images': parseInt(this.dom.batchSize.value) || 1, 
             'prompt': finalPrompt, 
             'negativeprompt': this.dom.negativePrompt.value,
@@ -246,9 +248,30 @@ class PreviewViewer {
             'width': parseInt(this.dom.width.value) || 512,
             'height': parseInt(this.dom.height.value) || 512, 
             'seed': parseInt(this.dom.seed.value) || -1,
-            'donotsave': true,
-            'intermediate_images': wantIntermediates 
+            'donotsave': true, // Always do not save for previews
+            'intermediate_images': wantIntermediates,
+            // Null out explicit LoRA arrays so we don't double-apply them 
+            // (since we baked them into the prompt string above)
+            'loras': null,
+            'loraweights': null
         };
+
+        // Use Swarm's global function to build the full parameter set
+        // This ensures we include VAEs, Refiners, and other Advanced Tab settings
+        let finalInput = {};
+        if (typeof getGenInput === 'function') {
+            finalInput = getGenInput(overrides);
+        } else {
+            // Fallback if Swarm's core isn't loaded for some reason
+            debugLog("Warning: getGenInput not found, using limited parameters.");
+            finalInput = overrides;
+            // Ensure session ID is present if we are falling back
+            let sessId = localStorage.getItem('session_id');
+            if (typeof getSessionID === 'function') sessId = getSessionID();
+            finalInput['session_id'] = sessId;
+        }
+
+        return finalInput;
     }
 
     generate() {
