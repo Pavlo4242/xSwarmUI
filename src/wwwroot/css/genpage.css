@@ -13,7 +13,6 @@ body {
     width: 100%;
     border-radius: 0.5rem;
 }
-
 .generate-button {
     background-color: var(--button-background);
     color: var(--button-text);
@@ -149,10 +148,6 @@ body {
 }
 .advanced_input_checkbox_presets {
     bottom: 0rem;
-}
-#main_inputs_area {
-    margin-top: 1rem; /* Space when prompt overlaps */
-    border-top: 1px solid var(--light-border);
 }
 .main_inputs_area_wrapper {
     overflow-x: hidden;
@@ -928,14 +923,13 @@ body {
     border-radius: 0.2rem;
 }
 .alt_prompt_region {
-    z-index: 10; /* Above preview */
-    background: var(--background-soft);
-    border: 2px solid var(--light-border);
-    border-radius: 0.8rem;
-    padding: 1rem;
-    margin: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    pointer-events: auto;
+    position: relative;
+    top: -3.5rem;
+    border-top: 1px solid var(--light-border);
+    width: fit-content;
+    padding-top: 0.5rem;
+    padding-bottom: 5px;
+    padding-left: 0.5rem;
 }
 .alt_prompt_main_line {
     display: flex;
@@ -956,9 +950,9 @@ body {
     color: color-mix(in srgb, var(--text) 50%, var(--background));
 }
 .alt_prompt_textboxes {
-    background: var(--input-bg, var(--background));
-    border-radius: 0.5rem;
-    padding: 0.5rem;
+    margin-left: 1rem;
+    display: inline-block;
+    flex-grow: 10;
 }
 .alt-text-tokencount-wrapper {
     position: relative;
@@ -1758,20 +1752,59 @@ body {
 }
 .current_image_batch:has(.sidebar-bottom-section ul.nav li) .sidebar-horizontal-split {
     display: block;
+}}
+/* Prevent inversion/highlighting on sidebar tab headers */
+.input-sidebar .nav-tabs, 
+.current_image_batch .nav-tabs {
+    background-color: transparent;
+    border-bottom: 1px solid var(--light-border);
 }
-/* Force all inputs to theme colors */
-.auto-text, .auto-slider-box input, .auto-dropdown, .basic-button, input, select, textarea {
-    background-color: var(--input-bg, var(--background-soft)) !important;
+
+/* Ensure the active tab looks like a normal part of the UI, not inverted */
+.input-sidebar .nav-link.active,
+.current_image_batch .nav-link.active {
+    background-color: var(--background-soft) !important;
+    color: var(--text) !important;
+    border-color: var(--light-border) var(--light-border) transparent var(--light-border) !important;
+}
+
+/* Optional: Subtle hover instead of a full color flip */
+.input-sidebar .nav-link:hover,
+.current_image_batch .nav-link:hover {
+    background-color: var(--emphasis);
+    color: var(--emphasis-text);
+}
+/* * UNIFORM UI FORCE-FIX: STOPS ALL TAB INVERSION 
+ */
+
+/* 1. Force all sidebar backgrounds to remain the base dark color */
+.input-sidebar, 
+.current_image_batch, 
+.sidebar-top-section, 
+.sidebar-bottom-section,
+.tab-content,
+.tab-pane {
+    background-color: var(--background) !important;
+    color: var(--text) !important;
+}
+
+/* 2. Stop the "Inversion" on Tab Buttons (Links) */
+/* This targets the specific Bootstrap classes that cause the white/bright highlight */
+.nav-tabs .nav-link,
+.nav-tabs .nav-item.show .nav-link,
+.nav-pills .nav-link {
+    background-color: rgba(255, 255, 255, 0.05) !important; /* Very subtle dark gray */
+    color: var(--text-soft) !important;
+    border: 1px solid var(--light-border) !important;
+    transition: none !important;
+}
+
+/* 3. Define the Active Tab: Dark background with an Emphasis border only */
+.nav-tabs .nav-link.active,
+.nav-pills .nav-link.active {
+    background-color: var(--background-soft) !important; /* Slightly lighter than bg, still dark */
     color: var(--text) !important;
     border: 1px solid var(--light-border) !important;
-}
-
-.auto-slider-box input[type=range] {
-    background: transparent !important; /* Keeps track visible */
-}
-
-/* Group headers */
-.input_group_header {
-    background: var(--bg-secondary, rgba(0,0,0,0.2)) !important;
-    color: var(--text) !important;
+    border-top: 3px solid var(--emphasis) !important; /* Only use emphasis as a thin accent line */
+    border-bottom-color: var(--background-soft) !important; /* Merges into the pane below */
 }
