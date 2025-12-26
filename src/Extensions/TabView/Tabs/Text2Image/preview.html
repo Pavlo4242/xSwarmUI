@@ -86,7 +86,9 @@
             cursor: pointer !important;
         }
         .p-btn:hover { background: #555 !important; }
+        .p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .p-btn-primary { background: #0d6efd !important; border-color: #0d6efd !important; font-weight: bold !important; }
+        .p-btn-danger { background: #dc3545 !important; border-color: #dc3545 !important; }
         
         .p-label { font-size: 11px !important; font-weight: bold !important; color: #aaa !important; text-transform: uppercase !important; display: block !important; margin-bottom: 4px !important; }
 
@@ -101,8 +103,8 @@
             background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
             background-size: 20px 20px;
         }
-        .p-image-area img { max-width: 100%; max-height: 100%; object-fit: contain; transition: none; }
-        .p-image-area img.generating { width: 100% !important; height: 100% !important; image-rendering: pixelated !important; }
+        .p-image-area img { max-width: 100%; max-height: 100%; object-fit: contain; transition: opacity 0.2s; }
+        .p-image-area img.generating { image-rendering: pixelated !important; }
 
         /* STEP STRIP (Middle) */
         .p-step-strip {
@@ -140,7 +142,7 @@
             border-radius: 2px;
         }
 
- .p-modify-mode-warning {
+        .p-modify-mode-warning {
             background: #ff9900;
             color: #000;
             padding: 2px 6px;
@@ -208,6 +210,18 @@
         }
         .p-overlay-progress-fill { height: 100%; background: #0d6efd; width: 0%; transition: width 0.1s; }
         
+        /* Connection Status */
+        .p-connection-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .p-connection-status.connected { background: #28a745; color: white; }
+        .p-connection-status.connecting { background: #ffc107; color: black; }
+        .p-connection-status.disconnected { background: #dc3545; color: white; }
+        
         /* Debug Console */
         #p_debug { 
             height: 60px; 
@@ -230,15 +244,17 @@
     </style>
 
     <div class="p-header">
-        <div style="font-size: 18px; font-weight: bold;"><i class="fas fa-eye" style="color:#0d6efd"></i> Live Preview</div>
+        <div style="font-size: 18px; font-weight: bold;">
+            <i class="fas fa-eye" style="color:#0d6efd"></i> Live Preview
+            <span id="p_connection_status" class="p-connection-status disconnected">Disconnected</span>
+        </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <label style="font-size:12px; cursor:pointer;">
                 <input type="checkbox" id="p_auto" checked> Auto-Gen
             </label>
             <label style="font-size:12px; cursor:pointer;" title="Watch main tab generations">
                 <input type="checkbox" id="p_watch_main" checked> Watch Main
-                        </label>
-            <!-- NEW: Modify Mode toggle -->
+            </label>
             <label style="font-size:12px; cursor:pointer;" title="Enable to modify parameters without auto-capturing">
                 <input type="checkbox" id="p_modify_mode"> Modify Mode
                 <span id="p_modify_warning" class="p-modify-mode-warning" style="display:none">MODIFYING</span>
@@ -246,8 +262,9 @@
             <button id="p_pull" class="p-btn">Pull Params</button>
             <button id="p_push" class="p-btn">Push Params</button>
             <button id="p_gen" class="p-btn p-btn-primary">GENERATE</button>
-            <!-- NEW: Clear Preview Steps button -->
+            <button id="p_interrupt" class="p-btn p-btn-danger" style="display:none">STOP</button>
             <button id="p_clear_steps" class="p-btn" title="Clear step previews">Clear Steps</button>
+            <button id="p_clear_history" class="p-btn" title="Clear generation history">Clear History</button>
         </div>
     </div>
 
@@ -288,7 +305,7 @@
                 <div id="p_progress" class="p-overlay-progress">
                     <div id="p_fill" class="p-overlay-progress-fill"></div>
                 </div>
-                <div id="p_error" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:red; color:white; padding:15px; display:none; border-radius:4px;"></div>
+                <div id="p_error" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:red; color:white; padding:15px; display:none; border-radius:4px; max-width:80%; text-align:center;"></div>
             </div>
             
             <div id="p_steps" class="p-step-strip">
@@ -299,7 +316,7 @@
                 <div style="margin:auto; color:#666; font-style:italic;">Generation history will appear here</div>
             </div>
             
-            <div id="p_debug">Console Ready. Preview Tab v5 - Enhanced Step Capture</div>
+            <div id="p_debug">Console Ready. Preview Tab v7 - Production WebSocket Handler</div>
         </div>
 
         <div class="p-col-right">
@@ -313,747 +330,5 @@
         </div>
     </div>
 
-<script>
-    (function() {
-        // Debug helper
-        const log = (msg) => {
-            const d = document.getElementById('p_debug');
-            if(d) { 
-                d.innerHTML += `<div>${new Date().toLocaleTimeString()} ${msg}</div>`; 
-                d.scrollTop = d.scrollHeight; 
-            }
-            console.log('[Preview] ' + msg);
-        };
-
-        // Persistent History
-        if (!window.previewHistory) window.previewHistory = [];
-        
-        // Current generation tracking
-        let currentSteps = [];
-        let currentBatchId = null;
-        let activeSocket = null;
-        
-        // NEW: Auto-cleanup tracking
-        let previewCleanupTimer = null;
-        const MAX_PREVIEWS_TO_KEEP = 50; // Limit to prevent memory issues
-        const PREVIEW_CLEANUP_INTERVAL = 30000; // Clean up every 30 seconds
-
-        class PreviewTab {
-            constructor() {
-                log("Init PreviewTab v6 - Always Capture Preview");
-                this.isGenerating = false;
-                this.debounceTimer = null;
-                this.watchMainTab = true;
-                this.modifyMode = false; // NEW: Default to false (auto-capture mode)
-                
-                // Map DOM
-                this.dom = {
-                    prompt: document.getElementById('p_prompt'),
-                    neg: document.getElementById('p_neg'),
-                    model: document.getElementById('p_model'),
-                    steps: document.getElementById('p_steps'),
-                    cfg: document.getElementById('p_cfg'),
-                    width: document.getElementById('p_width'),
-                    height: document.getElementById('p_height'),
-                    batch: document.getElementById('p_batch'),
-                    seed: document.getElementById('p_seed'),
-                    auto: document.getElementById('p_auto'),
-                    watchMain: document.getElementById('p_watch_main'),
-                    modifyMode: document.getElementById('p_modify_mode'), // NEW
-                    modifyWarning: document.getElementById('p_modify_warning'), // NEW
-                    img: document.getElementById('p_img'),
-                    loras: document.getElementById('p_loras'),
-                    history: document.getElementById('p_history'),
-                    stepsDiv: document.getElementById('p_steps'),
-                    
-                    // Overlays
-                    info: document.getElementById('p_info'),
-                    prog: document.getElementById('p_progress'),
-                    fill: document.getElementById('p_fill'),
-                    err: document.getElementById('p_error')
-                };
-
-                this.setupEvents();
-				
-                this.clearModifyModeOnLoad();
-
-                
-                // Start monitoring immediately
-                this.monitorMainTab();
-                
-                // Start auto-cleanup timer
-                this.startAutoCleanup();
-                
-                if (window.previewHistory.length > 0) this.refreshHistoryUI();
-
-                // Initial Sync
-                setTimeout(() => this.syncFromMain(), 500);
-                setTimeout(() => this.syncFromMain(), 2000);
-            }
-
-            setupEvents() {
-                // NEW: Modify Mode handling
-                this.dom.modifyMode.addEventListener('change', () => {
-                    this.modifyMode = this.dom.modifyMode.checked;
-                    this.dom.modifyWarning.style.display = this.modifyMode ? 'inline' : 'none';
-                    
-                    if (this.modifyMode) {
-                        log("Modify Mode ENABLED - Auto-capture paused");
-                        // Disable auto-trigger while in modify mode
-                        this.dom.auto.checked = false;
-                        this.dom.auto.disabled = true;
-                    } else {
-                        log("Modify Mode DISABLED - Auto-capture resumed");
-                        this.dom.auto.disabled = false;
-                        this.dom.auto.checked = true;
-                    }
-                });
-
-                // Inputs trigger Auto-Gen (only if not in modify mode)
-                ['prompt', 'neg', 'steps', 'cfg', 'width', 'height', 'batch', 'seed', 'model'].forEach(k => {
-                    this.dom[k].addEventListener('input', () => {
-                        if (!this.modifyMode) {
-                            this.trigger();
-                        }
-                    });
-                });
-                
-                this.dom.auto.addEventListener('change', () => {
-                    if (!this.modifyMode) {
-                        this.trigger();
-                    }
-                });
-                
-                this.dom.watchMain.addEventListener('change', () => {
-                    this.watchMainTab = this.dom.watchMain.checked;
-                    if (this.watchMainTab && !this.mainTabObserver) {
-                        this.monitorMainTab();
-                    }
-                });
-
-                // Buttons
-                document.getElementById('p_gen').onclick = () => { 
-                    log("Manual Generate"); 
-                    this.generate(); 
-                };
-                document.getElementById('p_pull').onclick = () => { 
-                    log("Pulling..."); 
-                    this.syncFromMain(); 
-                };
-                document.getElementById('p_push').onclick = () => { 
-                    log("Pushing..."); 
-                    this.syncToMain(); 
-                };
-                document.getElementById('p_refresh_loras').onclick = () => this.buildLoras();
-                
-                // NEW: Clear steps button
-                document.getElementById('p_clear_steps').onclick = () => {
-                    log("Clearing step previews");
-                    this.clearStepPreviews();
-                };
-            }
-
-            // NEW: Auto-cleanup for previews
-            startAutoCleanup() {
-                if (previewCleanupTimer) {
-                    clearInterval(previewCleanupTimer);
-                }
-                
-                previewCleanupTimer = setInterval(() => {
-                    this.cleanupOldPreviews();
-                }, PREVIEW_CLEANUP_INTERVAL);
-                
-                log("Auto-cleanup timer started");
-            }
-
-            cleanupOldPreviews() {
-                // Clean up step previews if too many
-                if (currentSteps.length > MAX_PREVIEWS_TO_KEEP) {
-                    const toRemove = currentSteps.length - MAX_PREVIEWS_TO_KEEP;
-                    currentSteps.splice(0, toRemove);
-                    
-                    // Update UI
-                    const stepItems = this.dom.stepsDiv.querySelectorAll('.p-step-item');
-                    for (let i = 0; i < toRemove && i < stepItems.length; i++) {
-                        stepItems[i].remove();
-                    }
-                    
-                    log(`Cleaned up ${toRemove} old previews`);
-                }
-            }
-
-            clearStepPreviews() {
-                currentSteps = [];
-                this.dom.stepsDiv.innerHTML = '<div class="p-step-strip-empty">Preview steps cleared</div>';
-                log("Step previews cleared");
-            }
-			
-			           // Clear modify mode checkbox on page load
-            clearModifyModeOnLoad() {
-                // Uncheck modify mode by default (so it auto-captures)
-                this.dom.modifyMode.checked = false;
-                this.modifyMode = false;
-                this.dom.modifyWarning.style.display = 'none';
-                this.dom.auto.disabled = false;
-                this.dom.auto.checked = true;
-                log("Modify Mode cleared - auto-capture enabled");
-            }
-			
-			
-
-            // --- THE WATCHER (Captures Main Tab Gens) - ENHANCED ---
-         // --- THE WATCHER (Captures Main Tab Gens) - ENHANCED ---
-            monitorMainTab() {
-                if (!this.watchMainTab) return;
-                
-                log("Starting Main Tab Monitor (WebSocket interception)...");
-                
-                // Method 1: Hook into the main tab's WebSocket handler
-                this.hookIntoMainTabWebSocket();
-                
-                // Method 2: Still watch DOM as backup
-                this.setupDOMMonitoring();
-            }
-            
-            hookIntoMainTabWebSocket() {
-                // Store original makeWSRequestT2I function
-                const originalMakeWSRequestT2I = window.makeWSRequestT2I;
-                
-                if (originalMakeWSRequestT2I) {
-                    window.makeWSRequestT2I = (url, in_data, callback, errorHandle = null) => {
-                        const wrappedCallback = (data) => {
-                            // Intercept preview data from main tab
-                            if (data.gen_progress && data.gen_progress.preview && 
-                                !this.modifyMode && this.watchMainTab) {
-                                this.capturePreviewFromMain(
-                                    data.gen_progress.preview,
-                                    data.gen_progress.metadata || '{}',
-                                    data.gen_progress.request_id || 'main',
-                                    false
-                                );
-                            }
-                            
-                            // Pass through to original callback
-                            if (callback) callback(data);
-                        };
-                        
-                        return originalMakeWSRequestT2I(url, in_data, wrappedCallback, errorHandle);
-                    };
-                    
-                    log("WebSocket interception hooked");
-                } else {
-                    log("Warning: makeWSRequestT2I not found, falling back to DOM monitoring");
-                }
-            }
-            
-            setupDOMMonitoring() {
-                const targetNode = document.getElementById('current_image_batch');
-                
-                if (!targetNode) {
-                    log("Main tab 'current_image_batch' not found yet. Retrying...");
-                    setTimeout(() => this.setupDOMMonitoring(), 2000);
-                    return;
-                }
-
-                this.mainTabObserver = new MutationObserver((mutations) => {
-                    if (!this.watchMainTab || this.modifyMode) return;
-                    
-                    mutations.forEach((mutation) => {
-                        // Look for new image elements added
-                        if (mutation.addedNodes.length > 0) {
-                            mutation.addedNodes.forEach(node => {
-                                if (node.classList && node.classList.contains('image-block')) {
-                                    const img = node.querySelector('img');
-                                    if (img && img.src) {
-                                        const src = img.src;
-                                        const metadata = node.dataset.metadata || '{}';
-                                        const batchId = node.dataset.batch_id || 'main';
-                                        
-                                        if (src.startsWith('data:')) {
-                                            this.capturePreviewFromMain(src, metadata, batchId, true);
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    });
-                });
-
-                this.mainTabObserver.observe(targetNode, { 
-                    childList: true, 
-                    subtree: true 
-                });
-                
-                log("DOM monitoring active");
-            }
-			
-
-     capturePreviewFromMain(src, metadata, batchId, isNewBlock = false) {
-                if (!this.watchMainTab || this.modifyMode) return;
-                
-                // Update main display
-                this.dom.img.src = src;
-                this.dom.img.classList.add('generating');
-                
-                // Get step number from metadata if possible
-                let stepNum = null;
-                try {
-                    const meta = JSON.parse(metadata);
-                    if (meta.sui_image_params && meta.sui_image_params.steps) {
-                        const totalSteps = meta.sui_image_params.steps;
-                        // Try to extract actual step from metadata or use estimate
-                        if (data.gen_progress && data.gen_progress.current_percent) {
-                            stepNum = Math.floor(data.gen_progress.current_percent * totalSteps);
-                        } else {
-                            stepNum = currentSteps.length + 1;
-                        }
-                    }
-                } catch (e) {
-                    // Ignore metadata parsing errors
-                }
-                
-                // Add step frame with deduplication
-                if (!this.isDuplicatePreview(src)) {
-                    this.addStepFrame(src, stepNum, true);
-                    
-                    // Show info overlay
-                    this.dom.info.textContent = `Main Tab: Step ${stepNum || '?'}`;
-                    this.dom.info.style.display = 'block';
-                    
-                    log(`Captured preview from main tab (step ${stepNum || '?'})`);
-                }
-            }
-            
-            isDuplicatePreview(src) {
-                // Check if this is a duplicate of the most recent preview
-                if (currentSteps.length === 0) return false;
-                
-                const lastPreview = currentSteps[currentSteps.length - 1];
-                
-                // For data URLs, compare the first part (before the base64 data)
-                if (src.startsWith('data:') && lastPreview.startsWith('data:')) {
-                    const srcHeader = src.split(',')[0];
-                    const lastHeader = lastPreview.split(',')[0];
-                    return srcHeader === lastHeader;
-                }
-                
-                return src === lastPreview;
-            }
-
-            captureFinalFromMain(src, metadata, batchId) {
-                if (!this.watchMainTab || this.modifyMode) return;
-                
-                log("Captured Final from Main: " + src.substring(0, 50));
-                this.dom.img.src = src;
-                this.dom.img.classList.remove('generating');
-                this.dom.info.style.display = 'none';
-                
-                // Only add to history if it's not a duplicate
-                const isDuplicate = window.previewHistory.some(item => item.url === src);
-                if (!isDuplicate) {
-                    this.addToHistory(src, metadata);
-                }
-            }
-
-
-
-
-
-            trigger() {
-                if(!this.dom.auto.checked || this.isGenerating) return;
-                clearTimeout(this.debounceTimer);
-                this.debounceTimer = setTimeout(() => this.generate(), 500);
-            }
-
-            // --- SYNC ---
-            syncFromMain() {
-                const getVal = (id) => {
-                    const el = document.getElementById(id) || document.getElementById('input_' + id);
-                    return el ? el.value : null;
-                };
-                
-                const p = getVal('prompt');
-                if (p === null) return;
-
-                this.dom.prompt.value = p;
-                this.dom.neg.value = getVal('negativeprompt') || '';
-                this.dom.steps.value = getVal('steps') || 20;
-                this.dom.cfg.value = getVal('cfgscale') || 7;
-                this.dom.width.value = getVal('width') || 512;
-                this.dom.height.value = getVal('height') || 512;
-                this.dom.seed.value = getVal('seed') || -1;
-                this.dom.batch.value = getVal('batchsize') || 1;
-
-                const mMain = document.getElementById('current_model');
-                if(mMain) {
-                    this.dom.model.innerHTML = mMain.innerHTML;
-                    this.dom.model.value = mMain.value;
-                }
-                this.buildLoras();
-            }
-
-            syncToMain() {
-                const setVal = (id, val) => {
-                    const el = document.getElementById(id) || document.getElementById('input_' + id);
-                    if(el) {
-                        el.value = val;
-                        el.dispatchEvent(new Event('change', {bubbles:true}));
-                        el.dispatchEvent(new Event('input', {bubbles:true}));
-                    }
-                };
-                setVal('prompt', this.dom.prompt.value);
-                setVal('negativeprompt', this.dom.neg.value);
-                setVal('steps', this.dom.steps.value);
-                setVal('cfgscale', this.dom.cfg.value);
-                setVal('width', this.dom.width.value);
-                setVal('height', this.dom.height.value);
-                setVal('seed', this.dom.seed.value);
-                setVal('batchsize', this.dom.batch.value);
-            }
-
-            buildLoras() {
-                this.dom.loras.innerHTML = '';
-                if(typeof loraHelper !== 'undefined' && loraHelper.selected && loraHelper.selected.length > 0) {
-                    loraHelper.selected.forEach(l => {
-                        const div = document.createElement('div');
-                        div.style.background = '#333'; 
-                        div.style.padding = '5px'; 
-                        div.style.borderRadius = '4px';
-                        div.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold;">
-                                <span style="overflow:hidden; text-overflow:ellipsis; max-width:180px;" title="${l.name}">${l.name}</span>
-                                <span id="plv_${l.name}">${l.weight}</span>
-                            </div>
-                            <input type="range" min="-2" max="2" step="0.1" value="${l.weight}" style="width:100%"
-                                oninput="document.getElementById('plv_${l.name}').innerText=this.value; window.previewTab.trigger()">
-                        `;
-                        this.dom.loras.appendChild(div);
-                    });
-                } else {
-                    this.dom.loras.innerHTML = '<div style="color:#666; font-size:11px; text-align:center;">No LoRAs Active</div>';
-                }
-            }
-
-            // --- GENERATION ---
-            generate() {
-                if(this.isGenerating) {
-                    log("Already generating, ignoring request");
-                    return;
-                }
-                
-                this.isGenerating = true;
-                currentSteps = [];
-                currentBatchId = `preview_${Date.now()}`;
-                
-                // Clear step strip
-                this.dom.stepsDiv.innerHTML = '<div class="p-step-strip-empty">Generating...</div>';
-                this.dom.prog.style.display = 'block';
-                this.dom.info.style.display = 'block';
-                this.dom.img.classList.add('generating');
-                this.dom.err.style.display = 'none';
-
-                let prompt = this.dom.prompt.value;
-                Array.from(this.dom.loras.querySelectorAll('input[type=range]')).forEach(r => {
-                     const name = r.previousElementSibling.children[0].innerText;
-                     if(parseFloat(r.value) !== 0) prompt += ` <lora:${name}:${r.value}>`;
-                });
-
-                const input = {
-                    'session_id': localStorage.getItem('session_id'),
-                    'images': parseInt(this.dom.batch.value) || 1,
-                    'prompt': prompt,
-                    'negativeprompt': this.dom.neg.value,
-                    'steps': parseInt(this.dom.steps.value),
-                    'cfgscale': parseFloat(this.dom.cfg.value),
-                    'width': parseInt(this.dom.width.value),
-                    'height': parseInt(this.dom.height.value),
-                    'seed': parseInt(this.dom.seed.value),
-                    'model': this.dom.model.value,
-                    'donotsave': true,
-                    'intermediate_images': true
-                };
-
-                const maxSteps = input.steps;
-
-                try {
-                    activeSocket = makeWSRequestT2I('GenerateText2ImageWS', input, data => {
-                        // PROGRESS WITH PREVIEW
-                        if(data.gen_progress) {
-                            const p = data.gen_progress;
-                            if(p.preview) {
-                                this.dom.img.src = p.preview;
-                                const stepNum = Math.floor((p.current_percent || 0) * maxSteps);
-                                this.addStepFrame(p.preview, stepNum);
-                            }
-                            if(p.overall_percent) {
-                                this.dom.fill.style.width = (p.overall_percent * 100) + '%';
-                                const currentStep = Math.floor(p.overall_percent * maxSteps);
-                                this.dom.info.textContent = `Step: ${currentStep}/${maxSteps}`;
-                            }
-                        }
-                        
-                        // FINAL IMAGE
-                        if(data.image) {
-                            const url = data.image.image || data.image;
-                            this.dom.img.src = url;
-                            this.dom.img.classList.remove('generating');
-                            this.addToHistory(url, data.metadata || "{}");
-                            log("Final image received");
-                        }
-                        
-                        // DONE
-                        if(data.done || (data.status && data.status.live_gens == 0)) {
-                            this.isGenerating = false;
-                            this.dom.prog.style.display = 'none';
-                            this.dom.info.style.display = 'none';
-                            activeSocket = null;
-                            log("Generation complete");
-                        }
-                    }, error => {
-                        log("Error: " + JSON.stringify(error));
-                        this.dom.err.textContent = error.toString();
-                        this.dom.err.style.display = 'block';
-                        this.isGenerating = false;
-                        this.dom.prog.style.display = 'none';
-                        this.dom.info.style.display = 'none';
-                        this.dom.img.classList.remove('generating');
-                        activeSocket = null;
-                    });
-                } catch(e) {
-                    log("Exception during generation: " + e);
-                    this.dom.err.textContent = e.toString();
-                    this.dom.err.style.display = 'block';
-                    this.isGenerating = false;
-                    this.dom.prog.style.display = 'none';
-                    this.dom.info.style.display = 'none';
-                }
-            }
-
-      // --- STEP FILMSTRIP ---
-            addStepFrame(url, stepNum = null, fromMain = false) {
-                // Skip if in modify mode (except when from our own generation)
-                if (this.modifyMode && fromMain) {
-                    return;
-                }
-                
-                // Remove empty state if present
-                const emptyState = this.dom.stepsDiv.querySelector('.p-step-strip-empty');
-                if (emptyState) {
-                    emptyState.remove();
-                }
-
-                // Prevent duplicate consecutive frames (with tolerance for preview updates)
-                if (currentSteps.length > 0) {
-                    const lastUrl = currentSteps[currentSteps.length - 1];
-                    // If URLs are very similar (data URLs can vary slightly), skip
-                    if (url.length > 100 && lastUrl.length > 100 && 
-                        url.substring(0, 100) === lastUrl.substring(0, 100)) {
-                        return;
-                    }
-                }
-
-                currentSteps.push(url);
-                const index = currentSteps.length - 1;
-
-                // Auto-cleanup if we have too many
-                if (currentSteps.length > MAX_PREVIEWS_TO_KEEP * 2) {
-                    this.cleanupOldPreviews();
-                    return; // Will be called again with the next frame
-                }
-
-                const div = document.createElement('div');
-                div.className = 'p-step-item';
-                if (fromMain) {
-                    div.classList.add('from-main');
-                }
-                
-                const img = document.createElement('img');
-                img.src = url;
-                div.appendChild(img);
-                
-                if (stepNum !== null) {
-                    const numSpan = document.createElement('div');
-                    numSpan.className = 'p-step-number';
-                    numSpan.textContent = stepNum;
-                    div.appendChild(numSpan);
-                }
-
-                div.onclick = () => {
-                    this.dom.img.src = url;
-                    Array.from(this.dom.stepsDiv.children).forEach(c => c.classList.remove('active'));
-                    div.classList.add('active');
-                };
-
-                this.dom.stepsDiv.appendChild(div);
-                
-                // Auto-scroll to show latest
-                this.dom.stepsDiv.scrollLeft = this.dom.stepsDiv.scrollWidth;
-                
-                // Mark as active if it's the latest and not from main (when we're generating)
-                if (!fromMain || !this.isGenerating) {
-                    Array.from(this.dom.stepsDiv.children).forEach(c => c.classList.remove('active'));
-                    div.classList.add('active');
-                }
-            }
-
-
-
-
-            // --- HISTORY ---
-            addToHistory(url, metadata) {
-                // Remove empty state
-                const emptyMsg = this.dom.history.querySelector('div[style*="margin:auto"]');
-                if (emptyMsg) {
-                    emptyMsg.remove();
-                }
-
-                window.previewHistory.push({ 
-                    url, 
-                    metadata, 
-                    timestamp: Date.now(),
-                    steps: [...currentSteps]
-                });
-                
-                this.refreshHistoryUI();
-            }
-
-            refreshHistoryUI() {
-                // Keep empty message if no history
-                if (window.previewHistory.length === 0) {
-                    this.dom.history.innerHTML = '<div style="margin:auto; color:#666; font-style:italic;">Generation history will appear here</div>';
-                    return;
-                }
-
-                // Remove empty message
-                const emptyMsg = this.dom.history.querySelector('div[style*="margin:auto"]');
-                if (emptyMsg) {
-                    emptyMsg.remove();
-                }
-
-                // Clear and rebuild
-                this.dom.history.innerHTML = '';
-                
-                // Newest first
-                for (let i = window.previewHistory.length - 1; i >= 0; i--) {
-                    const item = window.previewHistory[i];
-                    
-                    const div = document.createElement('div');
-                    div.className = 'p-history-item';
-                    
-                    const img = document.createElement('img');
-                    img.src = item.url;
-                    div.appendChild(img);
-
-                    const overlay = document.createElement('div');
-                    overlay.className = 'p-hist-overlay';
-                    
-                    const viewBtn = document.createElement('i');
-                    viewBtn.className = 'fas fa-expand p-icon-btn';
-                    viewBtn.title = 'View';
-                    viewBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        this.dom.img.src = item.url;
-                        
-                        // Restore steps if available
-                        if (item.steps && item.steps.length > 0) {
-                            this.dom.stepsDiv.innerHTML = '';
-                            item.steps.forEach((stepUrl, idx) => {
-                                this.addStepFrame(stepUrl, idx);
-                            });
-                        }
-                    };
-                    overlay.appendChild(viewBtn);
-
-                    const regenBtn = document.createElement('i');
-                    regenBtn.className = 'fas fa-redo p-icon-btn';
-                    regenBtn.title = 'Restore Params';
-                    regenBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        this.restoreParams(item.metadata);
-                    };
-                    overlay.appendChild(regenBtn);
-
-                    div.onclick = () => {
-                        this.dom.img.src = item.url;
-                        Array.from(this.dom.history.children).forEach(c => c.classList.remove('active'));
-                        div.classList.add('active');
-                        
-                        // Restore steps
-                        if (item.steps && item.steps.length > 0) {
-                            this.dom.stepsDiv.innerHTML = '';
-                            item.steps.forEach((stepUrl, idx) => {
-                                this.addStepFrame(stepUrl, idx);
-                            });
-                        }
-                    };
-
-                    div.appendChild(overlay);
-                    this.dom.history.appendChild(div);
-                }
-            }
-
-            restoreParams(metadataStr) {
-                try {
-                    const meta = typeof metadataStr === 'string' ? JSON.parse(metadataStr) : metadataStr;
-                    log("Restoring params from history");
-                    if(meta.sui_image_params) {
-                        const params = meta.sui_image_params;
-                        if(params.prompt) this.dom.prompt.value = params.prompt;
-                        if(params.negativeprompt) this.dom.neg.value = params.negativeprompt;
-                        if(params.steps) this.dom.steps.value = params.steps;
-                        if(params.cfgscale) this.dom.cfg.value = params.cfgscale;
-                        if(params.width) this.dom.width.value = params.width;
-                        if(params.height) this.dom.height.value = params.height;
-                        if(params.seed) this.dom.seed.value = params.seed;
-                        if(params.model) this.dom.model.value = params.model;
-                    }
-                } catch(e) {
-                    log("Error restoring params: " + e);
-                }
-            }
-        
-
-   // Clean up on destroy
-            destroy() {
-                if (this.mainTabObserver) {
-                    this.mainTabObserver.disconnect();
-                }
-                if (this.currentImageObserver) {
-                    this.currentImageObserver.disconnect();
-                }
-                if (previewCleanupTimer) {
-                    clearInterval(previewCleanupTimer);
-                }
-            }
-        }
-
-        // Helper function to find parent with class
-        function findParentOfClass(element, className) {
-            while (element && element !== document) {
-                if (element.classList && element.classList.contains(className)) {
-                    return element;
-                }
-                element = element.parentElement;
-            }
-            return null;
-        }
-
-        window.previewTab = new PreviewTab();
-        
-        // Make it accessible for init function
-        window.initPreviewTab = function() {
-            log("initPreviewTab called externally");
-            if (window.previewTab) {
-                window.previewTab.syncFromMain();
-            }
-        };
-        
-        // Clean up when page unloads
-        window.addEventListener('beforeunload', () => {
-            if (window.previewTab) {
-                window.previewTab.destroy();
-            }
-        });
-    })();
-    </script>
+<script src="tab_view.js"></script>
 </div>
