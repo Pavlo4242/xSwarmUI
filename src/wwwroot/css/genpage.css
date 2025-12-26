@@ -1806,5 +1806,5 @@ body {
     color: var(--text) !important;
     border: 1px solid var(--light-border) !important;
     border-top: 3px solid var(--emphasis) !important; /* Only use emphasis as a thin accent line */
-    border-bottom-color: var(--background-soft) !important; /* Merges into the pane below */
+    border-bottom-color: var(--background-soft) !important; 
 }
