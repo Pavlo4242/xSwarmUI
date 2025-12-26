@@ -209,6 +209,20 @@ function injectLayoutCSS() {
             width: auto !important;
             height: auto !important;
         }
+        
+        /* FIX: METADATA TAB SIZING */
+        #image_metadata_container {
+            height: 100% !important;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow-y: auto !important; /* Allow scroll if content is huge */
+            overflow-x: hidden !important;
+        }
+        /* Ensure metadata children don't crush themselves */
+        #image_metadata_container > * {
+            flex-shrink: 0 !important;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -296,6 +310,12 @@ class GenTabLayout {
         this.managedTabContainers = [];
         this.managedTabs = [];
         this.layoutResets = [];
+
+        // SAFETY CONSTANTS to prevent "Crushing"
+        this.MIN_SIDEBAR_WIDTH = 220;
+        this.MIN_CENTER_WIDTH = 320;
+        this.MIN_BOTTOM_HEIGHT = 150;
+        this.NAV_HEADER_HEIGHT = 42; // Approx height of Bootstrap tab header
 
         const get = (id) => document.getElementById(id);
 
@@ -491,26 +511,55 @@ class GenTabLayout {
         document.body.classList.toggle('large-window', !this.isSmallWindow);
 
         const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
+        const availableWidth = window.innerWidth;
+        const availableHeight = window.innerHeight;
 
-        // Calculate dimensions with bounds
-        let leftW = this.leftShut ? 0 : Math.max(100, Math.min(this.leftSectionBarPos, window.innerWidth - 400));
-        let rightW = this.rightShut ? 0 : Math.max(100, Math.min(this.rightSectionBarPos, window.innerWidth - 400));
-        let bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : 
-                       Math.max(100, Math.min(this.bottomSectionBarPos, window.innerHeight - 200));
+        // --- SIDEBAR WIDTH CALCULATIONS ---
+        // Apply "Shut" state logic
+        let leftW = this.leftShut ? 0 : this.leftSectionBarPos;
+        let rightW = this.rightShut ? 0 : this.rightSectionBarPos;
+        
+        // Apply ANTI-CRUSH Constraints for Sidebars
+        if (!this.leftShut) {
+            // Ensure left bar isn't too small, and doesn't squeeze center too much
+            leftW = Math.max(this.MIN_SIDEBAR_WIDTH, Math.min(leftW, availableWidth - rightW - this.MIN_CENTER_WIDTH));
+        }
+        if (!this.rightShut) {
+             // Ensure right bar isn't too small, and doesn't squeeze center too much
+            rightW = Math.max(this.MIN_SIDEBAR_WIDTH, Math.min(rightW, availableWidth - leftW - this.MIN_CENTER_WIDTH));
+        }
+        
+        // Final sanity check: if window is too small, collapse panels automatically to prevent breakage
+        if (availableWidth < 600) {
+             // On very small screens, behave more fluidly or respect specific mobile overrides, 
+             // but here we ensure code doesn't break.
+        }
 
-        // Prevent overlap
-        const maxTotalSidebarWidth = window.innerWidth - 300;
-        if (leftW + rightW > maxTotalSidebarWidth) {
-            const ratio = maxTotalSidebarWidth / (leftW + rightW);
-            leftW = Math.floor(leftW * ratio);
-            rightW = Math.floor(rightW * ratio);
+        // --- BOTTOM BAR HEIGHT CALCULATIONS ---
+        // Check if there are actually visible tabs in the bottom bar
+        const bottomTabs = this.bottomBar ? this.bottomBar.querySelectorAll('.nav-link') : [];
+        const hasBottomTabs = bottomTabs.length > 0;
+        
+        let bottomH = 0;
+        
+        if (!hasBottomTabs) {
+             // If empty, it's 0 height regardless of "shut" state
+            bottomH = 0;
+        } else if (this.bottomShut) {
+            // If shut but has tabs, show only the header (approx 42px)
+            bottomH = this.NAV_HEADER_HEIGHT;
+        } else {
+            // If open, use stored position, but enforce MIN_HEIGHT
+            bottomH = Math.max(this.MIN_BOTTOM_HEIGHT, this.bottomSectionBarPos);
+            // Also ensure it doesn't cover the whole screen
+            bottomH = Math.min(bottomH, availableHeight - rootTop - 200);
         }
 
         const containerHeight = `calc(100vh - ${rootTop}px - ${bottomH}px)`;
-        const containerHeightPx = window.innerHeight - rootTop - bottomH;
+        const containerHeightPx = availableHeight - rootTop - bottomH;
         const containerTop = `${rootTop}px`;
 
-        // CENTER WORK AREA - PROPERLY EXCLUDE BOTH SIDEBARS
+        // CENTER WORK AREA - PROPERLY EXCLUDE BOTH SIDEBARS AND BOTTOM BAR
         if (this.mainImageArea) {
             Object.assign(this.mainImageArea.style, {
                 position: 'absolute',
@@ -724,14 +773,19 @@ class GenTabLayout {
         }
         
         if (this.bottomSplitBar) {
+            // If bottom is shut, split bar sits on top of the small header. 
+            // If empty (0 height), split bar should probably be hidden or at bottom.
+            const splitBarBottom = hasBottomTabs ? (bottomH - 6) : 0;
+            const displayStyle = (this.isSmallWindow || !hasBottomTabs) ? 'none' : 'block';
+
             Object.assign(this.bottomSplitBar.style, barStyle, { 
                 position: 'fixed', 
-                bottom: `${bottomH - 6}px`, 
+                bottom: `${splitBarBottom}px`, 
                 left: '0', 
                 width: '100vw', 
                 height: '12px', 
                 cursor: 'row-resize', 
-                display: this.isSmallWindow ? 'none' : 'block',
+                display: displayStyle,
                 borderTop: '2px solid rgba(100, 120, 180, 0.4)',
                 borderBottom: '2px solid rgba(100, 120, 180, 0.4)',
                 boxShadow: '0 0 8px rgba(0, 0, 0, 0.1)'
@@ -763,7 +817,8 @@ class GenTabLayout {
                 zIndex: '500', 
                 background: 'var(--body-bg)', 
                 borderTop: '1px solid var(--border-color)',
-                overflowY: 'auto'
+                overflowY: this.bottomShut ? 'hidden' : 'auto', // Don't scroll if just header
+                display: hasBottomTabs ? 'block' : 'none'
             });
         }
 
@@ -775,6 +830,8 @@ class GenTabLayout {
         }
 
         if (this.bottomSplitBarButton) {
+            // Only show toggle if there is content to toggle
+            this.bottomSplitBarButton.style.display = hasBottomTabs ? 'block' : 'none';
             this.bottomSplitBarButton.innerHTML = this.bottomShut ? '↑' : '↓';
             this.bottomSplitBarButton.title = this.bottomShut ? 'Expand Bottom Bar' : 'Collapse Bottom Bar';
         }
@@ -827,25 +884,48 @@ class GenTabLayout {
         this.rightSidebarSplitBar?.addEventListener('mousedown', (e) => startDrag(e, 'rightSplitDrag'));
 
         document.addEventListener('mousemove', (e) => {
+            const availableWidth = window.innerWidth;
+            const availableHeight = window.innerHeight;
+
             if (this.leftBarDrag) {
-                this.leftSectionBarPos = Math.max(100, Math.min(e.pageX, window.innerWidth - 400));
+                let newWidth = e.pageX;
+                // ANTI-CRUSH: Ensure left sidebar doesn't eat the center
+                const rightW = this.rightShut ? 0 : this.rightSectionBarPos;
+                const maxLeft = availableWidth - rightW - this.MIN_CENTER_WIDTH;
+                
+                newWidth = Math.max(this.MIN_SIDEBAR_WIDTH, Math.min(newWidth, maxLeft));
+                
+                this.leftSectionBarPos = newWidth;
                 this.leftShut = false;
                 this.reapplyPositions();
             }
             if (this.rightBarDrag) {
-                const newWidth = window.innerWidth - e.pageX;
-                this.rightSectionBarPos = Math.max(100, Math.min(newWidth, window.innerWidth - 400));
+                let newWidth = availableWidth - e.pageX;
+                // ANTI-CRUSH: Ensure right sidebar doesn't eat the center
+                const leftW = this.leftShut ? 0 : this.leftSectionBarPos;
+                const maxRight = availableWidth - leftW - this.MIN_CENTER_WIDTH;
+                
+                newWidth = Math.max(this.MIN_SIDEBAR_WIDTH, Math.min(newWidth, maxRight));
+                
+                this.rightSectionBarPos = newWidth;
                 this.rightShut = false;
                 this.reapplyPositions();
             }
             if (this.bottomBarDrag) {
-                this.bottomSectionBarPos = Math.max(100, Math.min(window.innerHeight - e.pageY, window.innerHeight - 100));
+                let newHeight = availableHeight - e.pageY;
+                // ANTI-CRUSH: Ensure bottom bar doesn't cover top/middle content
+                const maxBottom = availableHeight - 200; // Leave room for top bar
+                
+                newHeight = Math.max(this.MIN_BOTTOM_HEIGHT, Math.min(newHeight, maxBottom));
+                
+                this.bottomSectionBarPos = newHeight;
                 this.bottomShut = false;
                 this.reapplyPositions();
             }
             if (this.leftSplitDrag) {
                 const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-                const bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : this.bottomSectionBarPos;
+                // Use actual bottomH from reapplyPositions logic logic roughly, or just current DOM
+                const bottomH = this.bottomBar ? this.bottomBar.clientHeight : 0;
                 const containerHeightPx = window.innerHeight - rootTop - bottomH;
                 const relativeY = e.pageY - rootTop;
                 this.leftSidebarSplit = Math.max(0.2, Math.min(0.8, relativeY / containerHeightPx));
@@ -853,7 +933,7 @@ class GenTabLayout {
             }
             if (this.rightSplitDrag) {
                 const rootTop = this.t2iRootDiv.getBoundingClientRect().top + window.scrollY;
-                const bottomH = this.bottomShut ? (this.isSmallWindow ? 40 : 60) : this.bottomSectionBarPos;
+                const bottomH = this.bottomBar ? this.bottomBar.clientHeight : 0;
                 const containerHeightPx = window.innerHeight - rootTop - bottomH;
                 const relativeY = e.pageY - rootTop;
                 this.rightSidebarSplit = Math.max(0.2, Math.min(0.8, relativeY / containerHeightPx));
