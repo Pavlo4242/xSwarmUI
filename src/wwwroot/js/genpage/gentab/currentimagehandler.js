@@ -1,3 +1,4 @@
+
 /** Central helper class to handle the 'image full view' modal. */
 class ImageFullViewHelper {
     constructor() {
@@ -6,15 +7,11 @@ class ImageFullViewHelper {
         this.content = getRequiredElementById('image_fullview_modal_content');
         this.modalJq = $('#image_fullview_modal');
         this.noClose = false;
-
         document.addEventListener('click', (e) => {
             if (e.target.tagName == 'BODY') {
                 return; // it's impossible on the genpage to actually click body, so this indicates a bugged click, so ignore it
             }
-            if (!this.noClose && this.modal.style.display == 'block' &&
-                !findParentOfClass(e.target, 'imageview_popup_modal_undertext') &&
-                !findParentOfClass(e.target, 'video-controls') &&
-                !findParentOfClass(e.target, 'image_fullview_extra_buttons')) {
+            if (!this.noClose && this.modal.style.display == 'block' && !findParentOfClass(e.target, 'imageview_popup_modal_undertext') && !findParentOfClass(e.target, 'video-controls') && !findParentOfClass(e.target, 'image_fullview_extra_buttons')) {
                 this.close();
                 e.preventDefault();
                 e.stopPropagation();
@@ -22,17 +19,14 @@ class ImageFullViewHelper {
             }
             this.noClose = false;
         }, true);
-
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.isDragging = false;
         this.didDrag = false;
-
         this.content.addEventListener('wheel', this.onWheel.bind(this));
         this.content.addEventListener('mousedown', this.onMouseDown.bind(this));
         document.addEventListener('mouseup', this.onGlobalMouseUp.bind(this));
         document.addEventListener('mousemove', this.onGlobalMouseMove.bind(this));
-
         this.fixButtonDelay = null;
         this.lastClosed = 0;
         this.showMetadata = true;
@@ -117,46 +111,28 @@ class ImageFullViewHelper {
         }
     }
 
-detachImg() {
+    detachImg() {
         let wrap = getRequiredElementById('imageview_modal_imagewrap');
-        // Only run custom logic if we are NOT using simple CSS centering
-        // But for the modal, we usually want custom JS zoom/pan.
-        
         if (wrap.style.textAlign == 'center') {
             let img = this.getImgOrContainer();
             wrap.style.textAlign = 'left';
-            
-            // Get natural dimensions
             let width = img.naturalWidth ?? img.videoWidth;
             let height = img.naturalHeight ?? img.videoHeight;
             let imgAspectRatio = width / height;
-            
-            // Get container dimensions
-            let wrapWidth = wrap.offsetWidth;
-            let wrapHeight = wrap.offsetHeight;
-            let wrapAspectRatio = wrapWidth / wrapHeight;
-            
-            // IMPROVED FIT LOGIC
-            if (imgAspectRatio > wrapAspectRatio) {
-                // Image is wider than container
-                let targetHeight = wrapWidth / imgAspectRatio;
-                img.style.width = '100%';
-                img.style.height = `${targetHeight}px`; // Use pixels for precision
-                img.style.top = `${(wrapHeight - targetHeight) / 2}px`;
+            let wrapAspectRatio = wrap.offsetWidth / wrap.offsetHeight;
+            let targetWidth = wrap.offsetHeight * imgAspectRatio;
+            if (targetWidth > wrap.offsetWidth) {
+                img.style.top = `${(wrap.offsetHeight - (wrap.offsetWidth / imgAspectRatio)) / 2}px`;
+                img.style.height = `${(wrapAspectRatio / imgAspectRatio) * 100}%`;
                 img.style.left = '0px';
             }
             else {
-                // Image is taller than container
-                let targetWidth = wrapHeight * imgAspectRatio;
-                img.style.height = '100%';
-                img.style.width = `${targetWidth}px`;
                 img.style.top = '0px';
-                img.style.left = `${(wrapWidth - targetWidth) / 2}px`;
+                img.style.left = `${(wrap.offsetWidth - targetWidth) / 2}px`;
+                img.style.height = `100%`;
             }
-            
             img.style.objectFit = '';
             img.style.maxWidth = '';
-            img.style.position = 'absolute'; // Ensure absolute positioning for drag
         }
     }
 
@@ -249,16 +225,16 @@ detachImg() {
             imgHtml = `<audio class="imageview_popup_modal_img" id="imageview_popup_modal_img" style="cursor:grab;max-width:100%;object-fit:contain;" controls src="${encodedSrc}"></audio>`;
         }
         this.content.innerHTML = `
-    <div class="modal-dialog" style="display:none">(click outside image to close)</div>
-    <div class="imageview_modal_inner_div">
-        <div class="imageview_modal_imagewrap" id="imageview_modal_imagewrap" style="text-align:center;">
-            ${imgHtml}
-        </div>
-        <div class="imageview_popup_modal_undertext">
-            <div class="image_fullview_extra_buttons"></div>
-            <div class="image_fullview_metadata">${formatMetadata(metadata)}</div>
-        </div>
-    </div>`;
+        <div class="modal-dialog" style="display:none">(click outside image to close)</div>
+        <div class="imageview_modal_inner_div">
+            <div class="imageview_modal_imagewrap" id="imageview_modal_imagewrap" style="text-align:center;">
+                ${imgHtml}
+            </div>
+            <div class="imageview_popup_modal_undertext">
+                <div class="image_fullview_extra_buttons"></div>
+                <div class="image_fullview_metadata">${formatMetadata(metadata)}</div>
+            </div>
+        </div>`;
         let subDiv = this.content.querySelector('.image_fullview_extra_buttons');
         for (let added of buttonsForImage(getImageFullSrc(src), src, metadata)) {
             if (added.href) {
@@ -332,15 +308,8 @@ detachImg() {
 let imageFullView = new ImageFullViewHelper();
 
 class CurrentImageHelper {
+
     getCurrentImage() {
-        let large = document.getElementById('current_image_img_large');
-        if (large && large.style.display != 'none') {
-            return large;
-        }
-        let preview = document.getElementById('current_image_img_preview');
-        if (preview && preview.style.display != 'none') {
-            return preview;
-        }
         return document.getElementById('current_image_img');
     }
 
@@ -370,7 +339,7 @@ let autoClearBatchElem = getRequiredElementById('auto_clear_batch_checkbox');
 autoClearBatchElem.checked = localStorage.getItem('autoClearBatch') == 'true';
 /** Called when the user changes auto-clear-batch toggle to update local storage. */
 function toggleAutoClearBatch() {
-    localStorage.setItem('autoClearBatch', autoClearBatchElem.checked);
+    localStorage.setItem('autoClearBatch', `${autoClearBatchElem.checked}`);
 }
 
 /** Reference to the auto-load-previews toggle checkbox. */
@@ -378,7 +347,7 @@ let autoLoadPreviewsElem = getRequiredElementById('auto_load_previews_checkbox')
 autoLoadPreviewsElem.checked = localStorage.getItem('autoLoadPreviews') == 'true';
 /** Called when the user changes auto-load-previews toggle to update local storage. */
 function toggleAutoLoadPreviews() {
-    localStorage.setItem('autoLoadPreviews', autoLoadPreviewsElem.checked);
+    localStorage.setItem('autoLoadPreviews', `${autoLoadPreviewsElem.checked}`);
 }
 
 /** Reference to the auto-load-images toggle checkbox. */
@@ -386,15 +355,15 @@ let autoLoadImagesElem = getRequiredElementById('auto_load_images_checkbox');
 autoLoadImagesElem.checked = localStorage.getItem('autoLoadImages') != 'false';
 /** Called when the user changes auto-load-images toggle to update local storage. */
 function toggleAutoLoadImages() {
-    localStorage.setItem('autoLoadImages', autoLoadImagesElem.checked);
+    localStorage.setItem('autoLoadImages', `${autoLoadImagesElem.checked}`);
 }
 
-/** Reference to the show-load-spinners toggle checkbox. */
+/** Reference to the auto-clear-batch toggle checkbox. */
 let showLoadSpinnersElem = getRequiredElementById('show_load_spinners_checkbox');
 showLoadSpinnersElem.checked = localStorage.getItem('showLoadSpinners') != 'false';
 /** Called when the user changes show-load-spinners toggle to update local storage. */
 function toggleShowLoadSpinners() {
-    localStorage.setItem('showLoadSpinners', showLoadSpinnersElem.checked);
+    localStorage.setItem('showLoadSpinners', `${showLoadSpinnersElem.checked}`);
 }
 
 /** Reference to the separate-batches toggle checkbox. */
@@ -402,7 +371,7 @@ let separateBatchesElem = getRequiredElementById('separate_batches_checkbox');
 separateBatchesElem.checked = localStorage.getItem('separateBatches') == 'true';
 /** Called when the user changes separate-batches toggle to update local storage. */
 function toggleSeparateBatches() {
-    localStorage.setItem('separateBatches', separateBatchesElem.checked);
+    localStorage.setItem('separateBatches', `${separateBatchesElem.checked}`);
 }
 
 function clickImageInBatch(div) {
@@ -438,7 +407,8 @@ function rightClickImageInBatch(e, div) {
     for (let added of buttonsForImage(fullsrc, src, metadata)) {
         if (added.href) {
             popoverActions.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title });
-        } else {
+        }
+        else {
             popoverActions.push({ key: added.label, action: added.onclick, title: added.title });
         }
     }
@@ -466,12 +436,13 @@ function copy_current_image_params() {
         metadata.negativeprompt = extra.original_negativeprompt;
     }
     // Special hacks to repair edge cases in LoRA reuse
+    // There should probably just be a direct "for lora in list, set lora X with weight Y" instead of this
     if ('lorasectionconfinement' in metadata && 'loras' in metadata && 'loraweights' in metadata) {
         let confinements = metadata.lorasectionconfinement;
         let loras = metadata.loras;
         let weights = metadata.loraweights;
         let promptedLoras = extra.prompted_loras || [];
-        let isOldSwarmVers = !metadata.swarm_version || metadata.swarm_version.match(/^0.9.[0-6]./);
+        let isOldSwarmVers = !metadata.swarm_version || metadata.swarm_version.match(/^0\.9\.[0-6]\./);
         if (confinements.length == loras.length && loras.length == weights.length) {
             let newLoras = [];
             let newWeights = [];
@@ -487,7 +458,8 @@ function copy_current_image_params() {
             metadata.loraweights = newWeights;
             if (isOldSwarmVers) {
                 delete metadata.lorasectionconfinement;
-            } else {
+            }
+            else {
                 metadata.lorasectionconfinement = newConfinements;
             }
         }
@@ -536,7 +508,8 @@ function copy_current_image_params() {
                 group = group.parent;
             }
             setDirectParamValue(param, val);
-        } else if (elem && param.toggleable && param.visible && !resetExclude.includes(param.id)) {
+        }
+        else if (elem && param.toggleable && param.visible && !resetExclude.includes(param.id)) {
             let toggle = getRequiredElementById(`input_${param.id}_toggle`);
             toggle.checked = false;
             doToggleEnable(elem.id);
@@ -545,9 +518,9 @@ function copy_current_image_params() {
     hideUnsupportableParams();
 }
 
-/** 
+/**
  * Shifts the current image view (and full-view if open) to the next or previous image.
- * Returns true if the shift was successful, returns false if there was nothing to shift to. 
+ * Returns true if the shift was successful, returns false if there was nothing to shift to.
  */
 function shiftToNextImagePreview(next = true, expand = false, isArrows = false) {
     let curImgElem = currentImageHelper.getCurrentImage();
@@ -570,7 +543,8 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
                 return false;
             }
             newIndex = divs.length - 1;
-        } else if (newIndex >= divs.length) {
+        }
+        else if (newIndex >= divs.length) {
             if (!doCycle) {
                 return false;
             }
@@ -601,7 +575,8 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
             return false;
         }
         newIndex = imgs.length - 1;
-    } else if (newIndex >= imgs.length) {
+    }
+    else if (newIndex >= imgs.length) {
         if (!doCycle) {
             return false;
         }
@@ -622,18 +597,26 @@ function shiftToNextImagePreview(next = true, expand = false, isArrows = false) 
 
 window.addEventListener('keydown', function(kbevent) {
     let isFullView = imageFullView.isOpen();
-    let isCurImgFocused = document.activeElement && (findParentOfClass(document.activeElement, 'current_image') || findParentOfClass(document.activeElement, 'current_image_batch') || document.activeElement.tagName == 'BODY');
+    let isCurImgFocused = document.activeElement &&
+        (findParentOfClass(document.activeElement, 'current_image')
+        || findParentOfClass(document.activeElement, 'current_image_batch')
+        || document.activeElement.tagName == 'BODY');
     if (isFullView && kbevent.key == 'Escape') {
         $('#image_fullview_modal').modal('toggle');
-    } else if ((kbevent.key == 'ArrowLeft' || kbevent.key == 'ArrowUp') && (isFullView || isCurImgFocused)) {
+    }
+    else if ((kbevent.key == 'ArrowLeft' || kbevent.key == 'ArrowUp') && (isFullView || isCurImgFocused)) {
         shiftToNextImagePreview(false, isFullView, true);
-    } else if ((kbevent.key == 'ArrowRight' || kbevent.key == 'ArrowDown') && (isFullView || isCurImgFocused)) {
+    }
+    else if ((kbevent.key == 'ArrowRight' || kbevent.key == 'ArrowDown') && (isFullView || isCurImgFocused)) {
         shiftToNextImagePreview(true, isFullView, true);
-    } else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('main_image_area'))) {
+    }
+    else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('main_image_area'))) {
         getRequiredElementById('alt_generate_button').click();
-    } else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('simple_generate_button'))) {
+    }
+    else if (kbevent.key === "Enter" && kbevent.ctrlKey && isVisible(getRequiredElementById('simple_generate_button'))) {
         getRequiredElementById('simple_generate_button').click();
-    } else {
+    }
+    else {
         return;
     }
     kbevent.preventDefault();
@@ -648,19 +631,39 @@ function alignImageDataFormat() {
         return;
     }
     let curImgContainer = currentImageHelper.getCurrentImageContainer();
-    let extrasWrapper = document.getElementById('image_metadata_container');
-    if (!extrasWrapper) {
-        return;
-    }
+    let format = getUserSetting('ImageMetadataFormat', 'auto');
+    let extrasWrapper = curImg.querySelector('.current-image-extras-wrapper');
     let scale = img.dataset.previewGrow == 'true' ? 8 : 1;
     let imgWidth = (img.naturalWidth ?? img.videoWidth) * scale;
     let imgHeight = (img.naturalHeight ?? img.videoHeight) * scale;
     let ratio = imgWidth / imgHeight;
     let height = Math.min(imgHeight, curImg.offsetHeight);
     let width = Math.min(imgWidth, height * ratio);
-    curImgContainer.style.maxWidth = `min(100%, ${width}px)`;
-    curImg.classList.remove('current_image_small');
-    curImgContainer.style.maxHeight = `max(15rem, 100%)`;
+    let remainingWidth = curImg.clientWidth - width - 30;
+    curImgContainer.style.maxWidth = `calc(min(100%, ${width}px))`;
+    if ((remainingWidth > 30 * 16 && format == 'auto') || format == 'side') {
+        curImg.classList.remove('current_image_small');
+        extrasWrapper.style.display = 'inline-block';
+        extrasWrapper.classList.add('extras-wrapper-sideblock');
+        curImgContainer.style.maxHeight = `calc(max(15rem, 100%))`;
+        if (remainingWidth < 30 * 16) {
+            extrasWrapper.style.width = `${30 * 16}px`;
+            extrasWrapper.style.maxWidth = `${30 * 16}px`;
+            curImgContainer.style.maxWidth = `calc(min(100%, ${curImg.clientWidth - 30 * 16 - 30}px))`;
+        }
+        else {
+            extrasWrapper.style.width = `${remainingWidth}px`;
+            extrasWrapper.style.maxWidth = `${remainingWidth}px`;
+        }
+    }
+    else {
+        curImg.classList.add('current_image_small');
+        extrasWrapper.style.width = '100%';
+        extrasWrapper.style.maxWidth = `100%`;
+        extrasWrapper.style.display = 'block';
+        extrasWrapper.classList.remove('extras-wrapper-sideblock');
+        curImgContainer.style.maxHeight = `calc(max(15rem, 100% - 5.1rem))`;
+    }
 }
 
 function toggleStar(path, rawSrc) {
@@ -675,7 +678,8 @@ function toggleStar(path, rawSrc) {
                 if (data.new_state) {
                     button.classList.add('button-starred-image');
                     button.innerText = 'Starred';
-                } else {
+                }
+                else {
                     button.classList.remove('button-starred-image');
                     button.innerText = 'Star';
                 }
@@ -701,7 +705,7 @@ function toggleStar(path, rawSrc) {
     });
 }
 
-defaultButtonChoices = 'Use As Init,Edit Image,Star,Reuse Parameters,View In History';
+defaultButtonChoices = 'Use As Init,Edit Image,Star,Reuse Parameters';
 
 function getImageFullSrc(src) {
     if (src == null) {
@@ -727,17 +731,8 @@ function getImageFullSrc(src) {
     return fullSrc;
 }
 
-function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false, force = false, isPlaceholder = false) {
-    let largeImg = document.getElementById('current_image_img_large');
-    let previewImg = document.getElementById('current_image_img_preview');
-    let welcome = document.getElementById('welcome_message');
-
-    currentMetadataVal = metadata;
+function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, smoothAdd = false, canReparse = true, isPlaceholder = false) {
     currentImgSrc = src;
-
-    // Hide welcome on any image
-    if (welcome) welcome.style.display = 'none';
-
     if (metadata) {
         metadata = interpretMetadata(metadata);
     }
@@ -754,11 +749,11 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
         image.onload = () => {
             if (!metadata) {
                 parseMetadata(image, (data, parsedMetadata) => {
-                    setCurrentImage(src, parsedMetadata, batchId, previewGrow, false, false, isPlaceholder);
+                    setCurrentImage(src, parsedMetadata, batchId, previewGrow, false, false);
                 });
             }
             else {
-                setCurrentImage(src, metadata, batchId, previewGrow, false, false, isPlaceholder);
+                setCurrentImage(src, metadata, batchId, previewGrow, false, false);
             }
         };
         image.src = src;
@@ -771,69 +766,45 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
     else {
         curImg.classList.remove('current_image_placeholder');
     }
-
-    // New logic: Check if we can use the existing split-image structure
-    let canUseSplit = largeImg && previewImg && !isVideo && !isAudio;
-    let img;
     let container;
-
-    if (canUseSplit) {
-        container = curImg; // Wrapper
-        // Decide which image to show
-        let showLarge = !previewGrow && src && !src.includes('progress');
-        if (showLarge) {
-            img = largeImg;
-            largeImg.style.display = 'block';
-            previewImg.style.display = 'none';
-        }
-        else {
-            img = previewImg;
-            largeImg.style.display = 'none';
-            previewImg.style.display = 'block';
-        }
-        img.src = src;
+    let img;
+    let isReuse = false;
+    let srcTarget;
+    if (isVideo) {
+        container = createDiv(null, 'video-container current-image-img');
+        curImg.innerHTML = '';
+        img = document.createElement('video');
+        img.className = 'current-image-img';
+        img.loop = true;
+        img.autoplay = true;
+        let sourceObj = document.createElement('source');
+        srcTarget = sourceObj;
+        sourceObj.type = isVideo;
+        img.appendChild(sourceObj);
+        container.appendChild(img);
+    }
+    else if (isAudio) {
+        curImg.innerHTML = '';
+        img = document.createElement('audio');
+        img.controls = true;
+        srcTarget = img;
+        container = img;
     }
     else {
-        // Fallback for video/audio or if structure is broken
-        if (largeImg) largeImg.remove();
-        if (previewImg) previewImg.remove();
-        if (document.getElementById('current_image_live_container')) document.getElementById('current_image_live_container').remove();
-        
-        let existingImg = curImg.querySelector('.current-image-img');
-        if (existingImg && existingImg.tagName == (isVideo ? 'VIDEO' : (isAudio ? 'AUDIO' : 'IMG'))) {
-            img = existingImg;
-        } else {
+        img = currentImageHelper.getCurrentImage();
+        if (!img || img.tagName != 'IMG') {
             curImg.innerHTML = '';
-            if (isVideo) {
-                container = createDiv(null, 'video-container current-image-img');
-                img = document.createElement('video');
-                img.loop = true;
-                img.autoplay = true;
-                container.appendChild(img);
-                curImg.appendChild(container);
-            } else if (isAudio) {
-                img = document.createElement('audio');
-                img.controls = true;
-                curImg.appendChild(img);
-            } else {
-                img = document.createElement('img');
-                curImg.appendChild(img);
-            }
-            img.className = 'current-image-img';
+            img = document.createElement('img');
         }
-        
-        if (isVideo) {
-            img.innerHTML = ''; // Clear sources
-            let sourceObj = document.createElement('source');
-            sourceObj.type = isVideo;
-            sourceObj.src = src;
-            img.appendChild(sourceObj);
-            img.load();
-        } else {
-            img.src = src;
+        else {
+            isReuse = true;
+            delete img.dataset.previewGrow;
+            img.removeAttribute('width');
+            img.removeAttribute('height');
         }
+        srcTarget = img;
+        container = img;
     }
-
     function naturalDim() {
         if (isVideo) {
             return [img.videoWidth, img.videoHeight];
@@ -861,189 +832,217 @@ function setCurrentImage(src, metadata = '', batchId = '', previewGrow = false, 
             }
         }, false);
     }
-
+    srcTarget.src = src;
+    container.classList.add('current-image-img');
     img.id = 'current_image_img';
     img.dataset.src = src;
     img.dataset.metadata = metadata || '{}';
     img.dataset.batch_id = batchId;
     img.onclick = () => imageFullView.showImage(img.dataset.src, img.dataset.metadata, img.dataset.batch_id);
-
-    // Metadata and Buttons Logic
-    let metadataWrapper = document.getElementById('image_metadata_container');
-    let buttonsWrapper = document.getElementById('current_image_buttons');
-
-    if (!buttonsWrapper && metadataWrapper) {
-        buttonsWrapper = metadataWrapper;
+    let extrasWrapper = isReuse ? document.getElementById('current-image-extras-wrapper') : createDiv('current-image-extras-wrapper', 'current-image-extras-wrapper');
+    extrasWrapper.innerHTML = '';
+    let buttons = createDiv(null, 'current-image-buttons');
+    let imagePathClean = getImageFullSrc(src);
+    let buttonsChoice = getUserSetting('ButtonsUnderMainImages', '');
+    if (buttonsChoice == '')
+    {
+        buttonsChoice = defaultButtonChoices;
     }
-
-    if (buttonsWrapper) {
-        buttonsWrapper.innerHTML = '';
-        let buttons = createDiv(null, 'current-image-buttons');
-        let imagePathClean = getImageFullSrc(src);
-        let buttonsChoice = getUserSetting('ButtonsUnderMainImages', '');
-        // Force default buttons if setting is empty or missing
-        if (!buttonsChoice || buttonsChoice.trim() === '') {
-            buttonsChoice = defaultButtonChoices;
+    buttonsChoice = buttonsChoice.toLowerCase().replaceAll(' ', '').split(',');
+    let subButtons = [];
+    function includeButton(name, action, extraClass = '', title = '') {
+        let checkName = name.toLowerCase().replaceAll(' ', '');
+        if (checkName == 'starred') {
+            checkName = 'star';
         }
-        buttonsChoice = buttonsChoice.toLowerCase().replaceAll(' ', '').split(',');
-        let subButtons = [];
-        function includeButton(name, action, extraClass = '', title = '') {
-            let checkName = name.toLowerCase().replaceAll(' ', '');
-            if (checkName == 'starred') { checkName = 'star'; }
-            if (buttonsChoice.includes(checkName)) {
-                quickAppendButton(buttons, name, (e, button) => action(button), extraClass, title);
+        if (buttonsChoice.includes(checkName)) {
+            quickAppendButton(buttons, name, (e, button) => action(button), extraClass, title);
+        }
+        else {
+            subButtons.push({ key: name, action: action, title: title });
+        }
+    }
+    let isDataImage = src.startsWith('data:');
+    includeButton('Use As Init', () => {
+        let initImageParam = document.getElementById('input_initimage');
+        if (initImageParam) {
+            let type = img.src.substring(img.src.lastIndexOf('.') + 1);
+            let set = (blob) => {
+                let file = new File([blob], imagePathClean, { type: `image/${type.length > 0 && type.length < 20 ? type : 'png'}` });
+                let container = new DataTransfer();
+                container.items.add(file);
+                initImageParam.files = container.files;
+                triggerChangeFor(initImageParam);
+                toggleGroupOpen(initImageParam, true);
+                let toggler = getRequiredElementById('input_group_content_initimage_toggle');
+                toggler.checked = true;
+                triggerChangeFor(toggler);
+            };
+            if (img.dataset.src && (img.dataset.src.startsWith('data:') || img.dataset.src.startsWith('/') || img.dataset.src.startsWith('View/'))) {
+                fetch(img.dataset.src).then(response => response.blob()).then(blob => {
+                    set(blob);
+                });
             }
             else {
-                subButtons.push({ key: name, action: action, title: title });
+                let tmpImg = new Image();
+                tmpImg.crossOrigin = 'Anonymous';
+                tmpImg.onload = () => {
+                    let canvas = document.createElement('canvas');
+                    canvas.width = tmpImg.naturalWidth;
+                    canvas.height = tmpImg.naturalHeight;
+                    let ctx = canvas.getContext('2d');
+                    ctx.drawImage(tmpImg, 0, 0);
+                    canvas.toBlob(blob => {
+                        set(blob);
+                    });
+                };
+                tmpImg.src = img.src;
             }
         }
-        let isDataImage = src.startsWith('data:');
-        includeButton('Use As Init', () => {
-            let initImageParam = document.getElementById('input_initimage');
-            if (initImageParam) {
+    }, '', 'Sets this image as the Init Image parameter input');
+    includeButton('Use As Image Prompt', () => {
+        let altPromptRegion = document.getElementById('alt_prompt_region');
+        if (!altPromptRegion) {
+            return;
+        }
+        let tmpImg = new Image();
+        tmpImg.crossOrigin = 'Anonymous';
+        tmpImg.onload = () => {
+            let canvas = document.createElement('canvas');
+            canvas.width = tmpImg.naturalWidth;
+            canvas.height = tmpImg.naturalHeight;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(tmpImg, 0, 0);
+            canvas.toBlob(blob => {
                 let type = img.src.substring(img.src.lastIndexOf('.') + 1);
-                let set = (blob) => {
-                    let file = new File([blob], imagePathClean, { type: `image/${type.length > 0 && type.length < 20 ? type : 'png'}` });
-                    let container = new DataTransfer();
-                    container.items.add(file);
-                    initImageParam.files = container.files;
-                    triggerChangeFor(initImageParam);
-                    toggleGroupOpen(initImageParam, true);
-                    let toggler = getRequiredElementById('input_group_content_initimage_toggle');
-                    toggler.checked = true;
-                    triggerChangeFor(toggler);
-                };
-                if (img.dataset.src && (img.dataset.src.startsWith('data:') || img.dataset.src.startsWith('/') || img.dataset.src.startsWith('View/'))) {
-                    fetch(img.dataset.src).then(response => response.blob()).then(blob => { set(blob); });
-                }
-                else {
-                    let tmpImg = new Image();
-                    tmpImg.crossOrigin = 'Anonymous';
-                    tmpImg.onload = () => {
-                        let canvas = document.createElement('canvas');
-                        canvas.width = tmpImg.naturalWidth;
-                        canvas.height = tmpImg.naturalHeight;
-                        let ctx = canvas.getContext('2d');
-                        ctx.drawImage(tmpImg, 0, 0);
-                        canvas.toBlob(blob => { set(blob); });
-                    };
-                    tmpImg.src = img.src;
-                }
-            }
-        }, '', 'Sets this image as the Init Image parameter input');
-        includeButton('Use As Image Prompt', () => {
-            let altPromptRegion = document.getElementById('alt_prompt_region');
-            if (!altPromptRegion) { return; }
-            let tmpImg = new Image();
-            tmpImg.crossOrigin = 'Anonymous';
-            tmpImg.onload = () => {
-                let canvas = document.createElement('canvas');
-                canvas.width = tmpImg.naturalWidth;
-                canvas.height = tmpImg.naturalHeight;
-                let ctx = canvas.getContext('2d');
-                ctx.drawImage(tmpImg, 0, 0);
-                canvas.toBlob(blob => {
-                    let type = img.src.substring(img.src.lastIndexOf('.') + 1);
-                    let file = new File([blob], imagePathClean, { type: `image/${type.length > 0 && type.length < 20 ? type : 'png'}` });
-                    imagePromptAddImage(file);
-                });
+                let file = new File([blob], imagePathClean, { type: `image/${type.length > 0 && type.length < 20 ? type : 'png'}` });
+                imagePromptAddImage(file);
+            });
+        };
+        tmpImg.src = img.src;
+    }, '', 'Uses this image as an Image Prompt input');
+    includeButton('Edit Image', () => {
+        let initImageGroupToggle = document.getElementById('input_group_content_initimage_toggle');
+        if (initImageGroupToggle) {
+            initImageGroupToggle.checked = true;
+            triggerChangeFor(initImageGroupToggle);
+        }
+        let initImageParam = document.getElementById('input_initimage');
+        if (!initImageParam) {
+            showError('Cannot use "Edit Image": Init Image parameter not found\nIf you have a custom workflow, deactivate it, or add an Init Image parameter.');
+            return;
+        }
+        let inputWidth = document.getElementById('input_width');
+        let inputHeight = document.getElementById('input_height');
+        let inputAspectRatio = document.getElementById('input_aspectratio');
+        if (inputWidth && inputHeight) {
+            inputWidth.value = img.naturalWidth;
+            inputHeight.value = img.naturalHeight;
+            triggerChangeFor(inputWidth);
+            triggerChangeFor(inputHeight);
+        }
+        if (inputAspectRatio) {
+            inputAspectRatio.value = 'Custom';
+            triggerChangeFor(inputAspectRatio);
+        }
+        imageEditor.setBaseImage(img);
+        imageEditor.activate();
+    }, '', 'Opens an Image Editor for this image');
+    includeButton('Upscale 2x', () => {
+        toDataURL(img.src, (url => {
+            let [width, height] = naturalDim();
+            let input_overrides = {
+                'initimage': url,
+                'images': 1,
+                'aspectratio': 'Custom',
+                'width': width * 2,
+                'height': height * 2
             };
-            tmpImg.src = img.src;
-        }, '', 'Uses this image as an Image Prompt input');
-        includeButton('Edit Image', () => {
-            let initImageGroupToggle = document.getElementById('input_group_content_initimage_toggle');
-            if (initImageGroupToggle) { initImageGroupToggle.checked = true; triggerChangeFor(initImageGroupToggle); }
-            let initImageParam = document.getElementById('input_initimage');
-            if (!initImageParam) {
-                showError('Cannot use "Edit Image": Init Image parameter not found\nIf you have a custom workflow, deactivate it, or add an Init Image parameter.');
-                return;
-            }
-            let inputWidth = document.getElementById('input_width');
-            let inputHeight = document.getElementById('input_height');
-            let inputAspectRatio = document.getElementById('input_aspectratio');
-            if (inputWidth && inputHeight) {
-                inputWidth.value = img.naturalWidth;
-                inputHeight.value = img.naturalHeight;
-                triggerChangeFor(inputWidth);
-                triggerChangeFor(inputHeight);
-            }
-            if (inputAspectRatio) {
-                inputAspectRatio.value = 'Custom';
-                triggerChangeFor(inputAspectRatio);
-            }
-            imageEditor.setBaseImage(img);
-            imageEditor.activate();
-        }, '', 'Opens an Image Editor for this image');
-        includeButton('Upscale 2x', () => {
-            toDataURL(img.src, (url => {
-                let [width, height] = naturalDim();
-                let input_overrides = { 'initimage': url, 'images': 1, 'aspectratio': 'Custom', 'width': width * 2, 'height': height * 2 };
-                mainGenHandler.doGenerate(input_overrides, { 'initimagecreativity': 0.4 });
-            }));
-        }, '', 'Runs an instant generation with this image as the input and scale doubled');
-        includeButton('Refine Image', () => {
-            toDataURL(img.src, (url => {
-                let input_overrides = { 'initimage': url, 'initimagecreativity': 0, 'images': 1 };
-                if (currentMetadataVal) {
-                    let readable = interpretMetadata(currentMetadataVal);
-                    let metadata = readable ? JSON.parse(readable).sui_image_params : {};
-                    if ('seed' in metadata) { input_overrides['seed'] = metadata.seed; }
+            mainGenHandler.doGenerate(input_overrides, { 'initimagecreativity': 0.4 });
+        }));
+    }, '', 'Runs an instant generation with this image as the input and scale doubled');
+    includeButton('Refine Image', () => {
+        toDataURL(img.src, (url => {
+            let input_overrides = {
+                'initimage': url,
+                'initimagecreativity': 0,
+                'images': 1
+            };
+            if (currentMetadataVal) {
+                let readable = interpretMetadata(currentMetadataVal);
+                let metadata = readable ? JSON.parse(readable).sui_image_params : {};
+                if ('seed' in metadata && !('refinercontrolpercentage' in metadata)) { // (Special case to not seed-burn on double-refine)
+                    input_overrides['seed'] = metadata.seed;
                 }
-                let togglerInit = getRequiredElementById('input_group_content_initimage_toggle');
-                let togglerRefine = getRequiredElementById('input_group_content_refineupscale_toggle');
-                let togglerInitOriginal = togglerInit.checked;
-                let togglerRefineOriginal = togglerRefine.checked;
-                togglerInit.checked = false;
-                togglerRefine.checked = true;
+            }
+            let togglerInit = getRequiredElementById('input_group_content_initimage_toggle');
+            let togglerRefine = getRequiredElementById('input_group_content_refineupscale_toggle');
+            let togglerInitOriginal = togglerInit.checked;
+            let togglerRefineOriginal = togglerRefine.checked;
+            togglerInit.checked = false;
+            togglerRefine.checked = true;
+            triggerChangeFor(togglerInit);
+            triggerChangeFor(togglerRefine);
+            mainGenHandler.doGenerate(input_overrides, {}, () => {
+                togglerInit.checked = togglerInitOriginal;
+                togglerRefine.checked = togglerRefineOriginal;
                 triggerChangeFor(togglerInit);
                 triggerChangeFor(togglerRefine);
-                mainGenHandler.doGenerate(input_overrides, {}, () => {
-                    togglerInit.checked = togglerInitOriginal;
-                    togglerRefine.checked = togglerRefineOriginal;
-                    triggerChangeFor(togglerInit);
-                    triggerChangeFor(togglerRefine);
-                });
-            }));
-        }, '', 'Runs an instant generation with Refine / Upscale turned on');
-        let metaParsed = { is_starred: false };
-        if (metadata) {
-            try { metaParsed = JSON.parse(metadata) || metaParsed; }
-            catch (e) { console.log(`Error parsing metadata for image: '${e}', metadata was '${metadata}'`); }
+            });
+        }));
+    }, '', 'Runs an instant generation with Refine / Upscale turned on');
+    let metaParsed = { is_starred: false };
+    if (metadata) {
+        try {
+            metaParsed = JSON.parse(metadata) || metaParsed;
         }
-        if (!isDataImage) {
-            includeButton(metaParsed.is_starred ? 'Starred' : 'Star', (e, button) => { toggleStar(imagePathClean, src); }, (metaParsed.is_starred ? ' star-button button-starred-image' : ' star-button'), 'Toggles this image as starred');
+        catch (e) {
+            console.log(`Error parsing metadata for image: '${e}', metadata was '${metadata}'`);
         }
-        includeButton('Reuse Parameters', copy_current_image_params, '', 'Copies generating parameters');
-        if (!isDataImage) {
-            includeButton('View In History', () => {
-                let folder = imagePathClean;
-                let lastSlash = folder.lastIndexOf('/');
-                if (lastSlash != -1) { folder = folder.substring(0, lastSlash); }
-                getRequiredElementById('imagehistorytabclickable').click();
-                imageHistoryBrowser.navigate(folder);
-            }, '', 'Jumps History browser to file location');
-        }
-        for (let added of buttonsForImage(imagePathClean, src, metadata)) {
-            if (added.label == 'Star' || added.label == 'Unstar') { continue; }
-            if (added.href) { subButtons.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title }); }
-            else { includeButton(added.label, added.onclick, '', added.title); }
-        }
-        quickAppendButton(buttons, 'More ▾', (e, button) => {
-            let rect = button.getBoundingClientRect();
-            new AdvancedPopover('image_more_popover', subButtons, false, rect.x, rect.y + button.offsetHeight + 6, document.body, null);
-        });
-        buttonsWrapper.appendChild(buttons);
     }
-
-    // Metadata text
-    if (metadataWrapper) {
-        metadataWrapper.innerHTML = '';
-        let data = createDiv(null, 'current-image-data');
-        data.innerHTML = formatMetadata(metadata);
-        metadataWrapper.appendChild(data);
+    if (!isDataImage) {
+        includeButton(metaParsed.is_starred ? 'Starred' : 'Star', (e, button) => {
+            toggleStar(imagePathClean, src);
+        }, (metaParsed.is_starred ? ' star-button button-starred-image' : ' star-button'), 'Toggles this image as starred - starred images get moved to a separate folder and highlighted');
     }
-
-    if (isVideo) { new VideoControls(img); }
+    includeButton('Reuse Parameters', copy_current_image_params, '', 'Copies the parameters used to generate this image to the current generation settings');
+    if (!isDataImage) {
+        includeButton('View In History', () => {
+            let folder = imagePathClean;
+            let lastSlash = folder.lastIndexOf('/');
+            if (lastSlash != -1) {
+                folder = folder.substring(0, lastSlash);
+            }
+            getRequiredElementById('imagehistorytabclickable').click();
+            imageHistoryBrowser.navigate(folder);
+        }, '', 'Jumps the History browser to where this file is at.');
+    }
+    for (let added of buttonsForImage(imagePathClean, src, metadata)) {
+        if (added.label == 'Star' || added.label == 'Unstar') {
+            continue;
+        }
+        if (added.href) {
+            subButtons.push({ key: added.label, href: added.href, is_download: added.is_download, title: added.title });
+        }
+        else {
+            includeButton(added.label, added.onclick, '', added.title);
+        }
+    }
+    quickAppendButton(buttons, 'More &#x2B9F;', (e, button) => {
+        let rect = button.getBoundingClientRect();
+        new AdvancedPopover('image_more_popover', subButtons, false, rect.x, rect.y + button.offsetHeight + 6, document.body, null);
+    });
+    extrasWrapper.appendChild(buttons);
+    let data = createDiv(null, 'current-image-data');
+    data.innerHTML = formatMetadata(metadata);
+    extrasWrapper.appendChild(data);
+    if (!isReuse) {
+        curImg.appendChild(container);
+        curImg.appendChild(extrasWrapper);
+        if (isVideo) {
+            new VideoControls(img);
+        }
+    }
     highlightSelectedImage(src);
 }
 
@@ -1054,7 +1053,8 @@ function highlightSelectedImage(src) {
         for (let i of batchContainer.getElementsByClassName('image-block')) {
             if (batchImg == i) {
                 i.classList.add('image-block-current');
-            } else {
+            }
+            else {
                 i.classList.remove('image-block-current');
             }
         }
@@ -1063,11 +1063,13 @@ function highlightSelectedImage(src) {
     if (historyContainer) {
         let normalizedSrc = getImageFullSrc(src);
         for (let i of historyContainer.getElementsByClassName('image-block')) {
+            // History browser images may have data-src (if clicked) or just data-name (if not clicked yet)
             let historyImgSrc = i.dataset.src || i.dataset.name;
             let normalizedHistorySrc = historyImgSrc ? getImageFullSrc(historyImgSrc) : null;
             if (normalizedHistorySrc && normalizedSrc == normalizedHistorySrc) {
                 i.classList.add('image-block-current');
-            } else {
+            }
+            else {
                 i.classList.remove('image-block-current');
             }
         }
@@ -1102,7 +1104,8 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
         let cache = modelIconUrlCache[model] || modelIconUrlCache[`${model}.safetensors`];
         if (model && cache) {
             imageSrc = cache;
-        } else {
+        }
+        else {
             imageSrc = 'imgs/model_placeholder.jpg';
         }
         div.dataset.is_placeholder = true;
@@ -1123,11 +1126,13 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
         srcTarget = sourceObj;
         sourceObj.type = isVideo;
         img.appendChild(sourceObj);
-    } else if (isAudio) {
+    }
+    else if (isAudio) {
         imageSrc = 'imgs/audio_placeholder.jpg';
         img = document.createElement('img');
         srcTarget = img;
-    } else {
+    }
+    else {
         img = document.createElement('img');
         srcTarget = img;
     }
@@ -1146,7 +1151,8 @@ function appendImage(container, imageSrc, batchId, textPreview, metadata = '', t
     }
     if (prepend) {
         container.prepend(div);
-    } else {
+    }
+    else {
         container.appendChild(div);
     }
     return div;
@@ -1202,10 +1208,9 @@ function imageInputHandler() {
                 let reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        parseMetadata(e.target.result, (data, metadata) => {
-                            setCurrentImage(data, metadata);
-                        });
-                    } catch (e) {
+                        parseMetadata(e.target.result, (data, metadata) => { setCurrentImage(data, metadata); });
+                    }
+                    catch (e) {
                         setCurrentImage(e.target.result, null);
                     }
                 }

@@ -110,11 +110,12 @@ public class ComfyUISelfStartBackend : ComfyUIAPIAbstractBackend
     /// <summary>List of required python packages that need a specific version, in structure (string libFolder, string pipName, string rel, string version).</summary>
     public static List<(string, string, string, string)> RequiredVersionPythonPackages =
     [
+        ("diffusers", "diffusers", ">=", "0.36.0"),
         ("aiohttp", "aiohttp", ">=", "3.11.8"),
         ("yarl", "yarl", ">=", "1.18.0"),
         ("av", "av", ">=", "14.2.0"),
         ("spandrel", "spandrel", ">=", "0.4.1"),
-        ("transformers", "transformers", ">=", "4.50.3"),
+        ("transformers", "transformers", ">=", "4.57.3"),
         ("ultralytics", "ultralytics", "==", "8.3.197"), // This is hard-pinned due to the malicious 8.3.41 incident, only manual updates when needed until security practices are improved.
         ("pip", "pip", ">=", "25.0") // Don't need latest, just can't be too old, this is mostly just here for a sanity check.
     ];
@@ -645,12 +646,14 @@ public class ComfyUISelfStartBackend : ComfyUIAPIAbstractBackend
                 else if (torchPipVers.StartsWith("2.7.")) { torchVers = "2.7"; }
                 else if (torchPipVers.StartsWith("2.8.")) { torchVers = "2.8"; }
                 else if (torchPipVers.StartsWith("2.9.")) { torchVers = "2.9"; }
+                else if (torchPipVers.StartsWith("2.10.")) { torchVers = "2.10"; }
+                else if (torchPipVers.StartsWith("2.11.")) { torchVers = "2.11"; }
                 else
                 {
-                    Logs.Error($"Nunchaku is not currently supported on your Torch version ({torchPipVers} not in range [2.5, 2.9]).");
+                    Logs.Error($"Nunchaku is not currently supported on your Torch version ({torchPipVers} not in range [2.5, 2.11].");
                     isValid = false;
                 }
-                string nunchakuTargetVersion = "1.0.2";
+                string nunchakuTargetVersion = "1.1.0";
                 // eg https://github.com/nunchaku-tech/nunchaku/releases/download/v0.3.2/nunchaku-0.3.2+torch2.5-cp310-cp310-linux_x86_64.whl
                 string url = $"https://github.com/nunchaku-tech/nunchaku/releases/download/v{nunchakuTargetVersion}/nunchaku-{nunchakuTargetVersion}+torch{torchVers}-cp{pyVers}-cp{pyVers}-{osVers}.whl";
                 if (isValid)

@@ -16,7 +16,7 @@ Properties/
 /Data
 /Models
 tmp/
-/src/Extensions
+#/src/Extensions
 /dlbackend
 *.debug
 custom-launch-docker.sh
@@ -27,3 +27,4 @@ docker-compose.yml
 __pycache__/
 venv/
 *.pth
+.aider*

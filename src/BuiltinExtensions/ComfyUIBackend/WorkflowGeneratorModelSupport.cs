@@ -709,6 +709,14 @@ public partial class WorkflowGenerator
                     }, id, false);
                     LoadingModel = [modelNode, 0];
                 }
+                else if (IsZImage())
+                {
+                    string modelNode = CreateNode("NunchakuZImageDiTLoader", new JObject()
+                    {
+                        ["model_name"] = model.ToString(ModelFolderFormat),
+                    }, id, false);
+                    LoadingModel = [modelNode, 0];
+                }
                 else
                 {
                     throw new SwarmUserErrorException($"Cannot load nunchaku for model architecture '{model.ModelClass?.ID}'. If other model architectures are supported in the Nunchaku source, please report this on the SwarmUI GitHub or Discord.");
@@ -877,7 +885,7 @@ public partial class WorkflowGenerator
         else if (IsFlux2())
         {
             helpers.LoadClip("flux2", helpers.GetMistralFlux2Model());
-            helpers.DoVaeLoader(null, "flux-2", "flux2-vae");
+            helpers.DoVaeLoader(UserInput.SourceSession?.User?.Settings?.VAEs?.DefaultFlux2VAE, "flux-2", "flux2-vae");
         }
         else if (IsFlux() && (LoadingClip is null || LoadingVAE is null || UserInput.Get(T2IParamTypes.T5XXLModel) is not null || UserInput.Get(T2IParamTypes.ClipLModel) is not null))
         {

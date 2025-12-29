@@ -155,9 +155,7 @@ function loadUserSettings(callback = null) {
     genericRequest('GetUserSettings', {}, data => {
         if (coreModelMap['VAE'] != null) {
             for (let setting of ['defaultsdxlvae', 'defaultsdv1vae', 'defaultsvdvae', 'defaultfluxvae', 'defaultflux2vae', 'defaultsd3vae', 'defaultmochivae']) {
-                if (data.settings.vaes.value[setting]) {
-                    data.settings.vaes.value[setting].values = ['None'].concat(coreModelMap['VAE']);
-                }
+                data.settings.vaes.value[setting].values = ['None'].concat(coreModelMap['VAE']);
             }
         }
         buildSettingsMenu(userSettingsContainer, data.settings, 'usersettings_', userSettingsData);
