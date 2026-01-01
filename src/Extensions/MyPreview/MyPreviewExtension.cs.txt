@@ -1,0 +1,14 @@
+using SwarmUI.Core;
+using SwarmUI.Utils;
+
+namespace MyPreview;
+
+public class MyPreviewExtension : Extension
+{
+    public override void OnInit()
+    {
+        ScriptFiles.Add("Assets/my_preview.js");
+        StyleSheetFiles.Add("Assets/my_preview.css");
+        // HTML is auto-loaded from Assets/Tabs/Text2Image/my_preview.html
+    }
+}

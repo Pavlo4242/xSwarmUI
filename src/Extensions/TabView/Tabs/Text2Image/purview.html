@@ -1,0 +1,144 @@
+<!-- refractored to use gen.css-->
+<div id="preview-tab-container" class="browser_container">
+    <!-- Header -->
+    <div class="preview-header">
+        <div class="header-left">
+            <button id="p_pull" class="refresh-button small" title="Sync from Main">↓ Sync</button>
+            <button id="p_push" class="refresh-button small" title="Push to Main">↑ Push</button>
+            <span id="p_connection_status" class="connection-status disconnected">Disconnected</span>
+        </div>
+        
+        <div class="header-center">
+            <div class="header-param-group">
+                <span>Model</span>
+                <select id="p_model"></select>
+            </div>
+            <div class="header-param-group">
+                <span>W</span>
+                <input type="number" id="p_width" value="512" step="64" min="256" max="2048">
+            </div>
+            <div class="header-param-group">
+                <span>H</span>
+                <input type="number" id="p_height" value="512" step="64" min="256" max="2048">
+            </div>
+            <div class="header-param-group">
+                <span>Steps</span>
+                <input type="range" id="p_steps" value="20" min="1" max="100">
+                <span id="p_steps_val" class="header-value-display">20</span>
+            </div>
+            <div class="header-param-group">
+                <span>CFG</span>
+                <input type="range" id="p_cfg" value="7" step="0.5" min="1" max="30">
+                <span id="p_cfg_val" class="header-value-display">7.0</span>
+            </div>
+            <div class="header-param-group">
+                <span>Seed</span>
+                <input type="number" id="p_seed" value="-1">
+            </div>
+            <div class="header-param-group">
+                <span>Batch</span>
+                <input type="number" id="p_batch" value="1" min="1" max="8">
+            </div>
+            <div class="header-param-group" style="border-left: 1px solid var(--light-border); padding-left: 8px;">
+                <span style="color: var(--emphasis);">Every N</span>
+                <input type="number" id="p_preview_interval" value="4" min="1" max="50" title="Capture preview every N steps">
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <label class="auto-input-box-label"><input type="checkbox" id="p_auto" checked><span>Auto</span></label>
+            <label class="auto-input-box-label"><input type="checkbox" id="p_watch_main" checked><span>Watch</span></label>
+            <button id="p_gen" class="generate-button" style="width: auto; padding: 0.2rem 1rem; font-size: 100%; margin: 0;">Generate</button>
+            <button id="p_interrupt" class="interrupt-button" style="display:none; margin: 0; padding: 0.2rem 1rem;">Stop</button>
+            <label class="auto-input-box-label"><input type="checkbox" id="p_modify_mode"><span>Modify</span></label>
+            <span id="p_modify_warning" class="modify-mode-warning" style="display:none;">MOD</span>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="preview-grid">
+        <div class="preview-col-left">
+            <div class="d-flex justify-content-between">
+                <h5>LoRA Browser</h5>
+                <button id="p_refresh_loras_browser" class="refresh-button small" title="Refresh LoRA List">↻ Refresh</button>
+            </div>
+            <input type="text" id="p_lora_search" placeholder="Search LoRAs...">
+            <div id="p_lora_browser" class="lora-browser-list">
+                <div class="secondary-text">Loading LoRAs...</div>
+            </div>
+        </div>
+
+        <div class="preview-col-center">
+            <div class="current_image" id="p_image_large">
+                <div class="preview-overlay-info" id="p_info" style="display:none;">Ready</div>
+                <div class="image-preview-progress-wrapper" id="p_progress" style="display:none;">
+                    <div class="image-preview-progress-inner">
+                        <div id="p_fill" class="image-preview-progress-overall"></div>
+                    </div>
+                </div>
+                <div class="error-popover" id="p_error" style="display:none;"></div>
+            </div>
+            
+            <div class="preview-filmstrip-container">
+                <div class="preview-filmstrip-header">
+                    <h5>Filmstrip</h5>
+                    <button id="p_clear_steps" class="refresh-button small">Clear</button>
+                </div>
+                <div id="p_step_strip" class="preview-filmstrip">
+                    <div class="secondary-text">Step previews will appear here</div>
+                </div>
+            </div>
+            
+            <div class="preview-filmstrip-container">
+                 <div class="preview-filmstrip-header">
+                    <h5>History</h5>
+                </div>
+                <div id="p_history" class="preview-filmstrip">
+                    <div class="secondary-text">History (latest at top)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-col-right">
+             <div class="d-flex justify-content-between">
+                <h5>Active LoRAs <span id="p_lora_count">(0)</span></h5>
+                <button id="p_clear_loras" class="refresh-button small" style="display:none;">Clear All</button>
+            </div>
+            <div id="p_loras" class="active-lora-list">
+                <div class="secondary-text">No LoRAs selected</div>
+            </div>
+            
+            <hr>
+            
+            <h5>Quick Actions</h5>
+            <div class="quick-actions-list">
+                <button id="p_refresh_loras" class="refresh-button small">Refresh LoRA Weights</button>
+                <button id="p_clear_history" class="refresh-button small">Clear History</button>
+            </div>
+            
+            <h5>Settings</h5>
+            <label class="auto-input-box-label">
+                <input type="checkbox" id="p_save_interims">
+                <span>Save Interim Images</span>
+            </label>
+        </div>
+    </div>
+    
+    <div class="preview-prompt-area">
+        <div class="prompt-box">
+            <span class="label-box-wrap">Positive Prompt</span>
+            <textarea id="p_prompt" rows="6" placeholder="Enter prompt...">a cat</textarea>
+        </div>
+        <div class="prompt-box">
+            <span class="label-box-wrap">Negative Prompt</span>
+            <textarea id="p_neg" rows="6" placeholder="Negative Prompt"></textarea>
+        </div>
+    </div>
+
+    <div id="p_debug" style="display: none;"></div>
+
+    <div id="p_lightbox" class="p-lightbox-overlay" style="display:none;">
+        <span class="p-lightbox-close">&times;</span>
+        <img class="p-lightbox-image" src="">
+    </div>
+</div>

@@ -1,0 +1,366 @@
+(function() {
+    'use strict';
+
+    const log = (msg, type = 'info') => {
+        const d = document.getElementById('p_debug');
+        if (d) {
+            const color = type === 'error' ? '#f00' : type === 'warn' ? '#ff0' : '#0f0';
+            d.innerHTML += `<div style="color:${color}">${new Date().toLocaleTimeString()} ${msg}</div>`;
+            d.scrollTop = d.scrollHeight;
+        }
+        console.log(`[PreviewTab] ${msg}`);
+    };
+
+    class PreviewTab {
+        constructor() {
+            this.dom = {
+                model: document.getElementById('p_model'),
+                steps: document.getElementById('p_steps'),
+                stepsVal: document.getElementById('p_steps_val'),
+                cfg: document.getElementById('p_cfg'),
+                cfgVal: document.getElementById('p_cfg_val'),
+                sampler: document.getElementById('p_sampler'),
+                scheduler: document.getElementById('p_scheduler'),
+                prompt: document.getElementById('p_prompt'),
+                neg: document.getElementById('p_neg'),
+                generate: document.getElementById('p_generate'),
+                interrupt: document.getElementById('p_interrupt'),
+                continuous: document.getElementById('p_continuous'),
+                pull: document.getElementById('p_pull'),
+                push: document.getElementById('p_push'),
+                status: document.getElementById('p_connection_status'),
+                img: document.getElementById('p_img'),
+                info: document.getElementById('p_info'),
+                progress: document.getElementById('p_fill'),
+                stepsStrip: document.getElementById('p_steps_strip'),
+                history: document.getElementById('p_history'),
+                loraSearch: document.getElementById('p_lora_search'),
+                loraBrowser: document.getElementById('p_lora_browser'),
+                loras: document.getElementById('p_loras'),
+                embedSearch: document.getElementById('p_embed_search'),
+                embedBrowser: document.getElementById('p_embed_browser'),
+                activeEmbeds: document.getElementById('p_active_embeds'),
+                saveInterims: document.getElementById('p_save_interims'),
+                clearHistory: document.getElementById('p_clear_history'),
+                toggleDebug: document.getElementById('p_toggle_debug'),
+                debug: document.getElementById('p_debug')
+            };
+
+            this.isGenerating = false;
+            this.continuousMode = false;
+            this.selectedLoras = {};
+            this.selectedEmbeds = new Set();
+            this.allLoras = [];
+            this.allEmbeddings = [];
+
+            this.waitForCore(() => this.initialize());
+        }
+
+waitForCore(callback) {
+            // Check for Core functions AND your specific DOM element (p_model)
+            if (typeof makeWSRequestT2I !== 'undefined' 
+                && typeof genericRequest !== 'undefined' 
+                && typeof gen_param_types !== 'undefined'
+                && document.getElementById('p_model')) { // Added this check
+                callback();
+            } else {
+                setTimeout(() => this.waitForCore(callback), 300);
+            }
+        }
+
+        initialize() {
+            this.setupEvents();
+            this.loadAllParameters(); // Single call to fetch all data
+            this.syncFromMain();
+            log('Modern Preview Tab initialized');
+        }
+
+        setupEvents() {
+            if (this.dom.generate) this.dom.generate.onclick = () => this.startGeneration();
+            if (this.dom.interrupt) this.dom.interrupt.onclick = () => this.interruptGeneration();
+            if (this.dom.continuous) this.dom.continuous.onchange = () => this.toggleContinuous();
+            if (this.dom.pull) this.dom.pull.onclick = () => this.syncFromMain();
+            if (this.dom.push) this.dom.push.onclick = () => this.pushToMain();
+            if (this.dom.toggleDebug) this.dom.toggleDebug.onclick = () => this.dom.debug.style.display = this.dom.debug.style.display === 'none' ? 'block' : 'none';
+            if (this.dom.steps) this.dom.steps.oninput = () => this.dom.stepsVal.textContent = this.dom.steps.value;
+            if (this.dom.cfg) this.dom.cfg.oninput = () => this.dom.cfgVal.textContent = parseFloat(this.dom.cfg.value).toFixed(1);
+            if (this.dom.clearHistory) this.dom.clearHistory.onclick = () => this.clearHistory();
+            if (this.dom.loraSearch) this.dom.loraSearch.oninput = () => this.filterLoras();
+            if (this.dom.embedSearch) this.dom.embedSearch.oninput = () => this.filterEmbeddings();
+        }
+
+ 
+// from here to the next comment pos removal //
+        renderLoraList(list) {
+            this.dom.loraBrowser.innerHTML = '';
+            list.forEach(name => {
+                const div = document.createElement('div');
+                div.textContent = name;
+                div.onclick = () => this.toggleLora(name, div);
+                if (this.selectedLoras[name]) div.classList.add('selected');
+                this.dom.loraBrowser.appendChild(div);
+            });
+        }
+
+        toggleLora(name, elem) {
+            if (this.selectedLoras[name]) {
+                delete this.selectedLoras[name];
+                elem.classList.remove('selected');
+            } else {
+                this.selectedLoras[name] = 1.0;
+                elem.classList.add('selected');
+            }
+            this.renderActiveLoras();
+        }
+
+        renderActiveLoras() {
+            this.dom.loras.innerHTML = '';
+            Object.entries(this.selectedLoras).forEach(([name, weight]) => {
+                const div = document.createElement('div');
+                div.innerHTML = `<span>${name}</span>`;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.1';
+                input.value = weight;
+                input.onchange = () => this.selectedLoras[name] = parseFloat(input.value) || 1.0;
+                div.appendChild(input);
+                const remove = document.createElement('button');
+                remove.textContent = 'Remove';
+                remove.onclick = () => {
+                    delete this.selectedLoras[name];
+                    this.renderActiveLoras();
+                };
+                div.appendChild(remove);
+                this.dom.loras.appendChild(div);
+            });
+        }
+
+        filterLoras() {
+            const term = this.dom.loraSearch.value.toLowerCase();
+            const filtered = this.allLoras.filter(n => n.toLowerCase().includes(term));
+            this.renderLoraList(filtered);
+        }
+
+ 
+
+        renderEmbedList(list) {
+            this.dom.embedBrowser.innerHTML = '';
+            list.forEach(name => {
+                const div = document.createElement('div');
+                div.textContent = name;
+                div.onclick = () => this.toggleEmbed(name, div);
+                if (this.selectedEmbeds.has(name)) div.classList.add('selected');
+                this.dom.embedBrowser.appendChild(div);
+            });
+        }
+
+        toggleEmbed(name, elem) {
+            if (this.selectedEmbeds.has(name)) {
+                this.selectedEmbeds.delete(name);
+                elem.classList.remove('selected');
+            } else {
+                this.selectedEmbeds.add(name);
+                elem.classList.add('selected');
+            }
+            this.renderActiveEmbeds();
+        }
+
+        renderActiveEmbeds() {
+            this.dom.activeEmbeds.innerHTML = '';
+            this.selectedEmbeds.forEach(name => {
+                const div = document.createElement('div');
+                div.textContent = name;
+                const remove = document.createElement('button');
+                remove.textContent = 'Remove';
+                remove.onclick = () => {
+                    this.selectedEmbeds.delete(name);
+                    this.renderActiveEmbeds();
+                };
+                div.appendChild(remove);
+                this.dom.activeEmbeds.appendChild(div);
+            });
+        }
+
+        filterEmbeddings() {
+            const term = this.dom.embedSearch.value.toLowerCase();
+            const filtered = this.allEmbeddings.filter(n => n.toLowerCase().includes(term));
+            this.renderEmbedList(filtered);
+        }
+
+//may need to eliminate above here //
+loadAllParameters() {
+            log('Loading all T2I parameters...');
+            // This single API call gets models, LoRAs, samplers, etc. as defined in T2IAPI.cs
+            genericRequest('ListT2IParams', {}, data => {
+                this.parseModels(data.models);
+                this.parseSamplersAndSchedulers(data.list);
+                this.parseLoras(data.models);
+                this.parseEmbeddings(data.wildcards); // Embeddings are called "wildcards" in the API
+                log('All parameters loaded successfully.');
+            }, err => {
+                log('Failed to load T2I parameters: ' + err, 'error');
+            });
+        }
+
+        parseModels(modelsData) {
+            if (!this.dom.model || !modelsData) return;
+            const stableDiffusionModels = modelsData['Stable-Diffusion'] || [];
+            this.dom.model.innerHTML = '<option value="">Select Model</option>';
+            stableDiffusionModels.forEach(m => {
+                const modelName = m[0]; // The response format is ["model_name", "arch_id"]
+                const opt = document.createElement('option');
+                opt.value = modelName;
+                opt.textContent = modelName;
+                this.dom.model.appendChild(opt);
+            });
+        }
+
+        parseSamplersAndSchedulers(paramList) {
+            if (!paramList) return;
+            const samplerParam = paramList.find(p => p.id === 'sampler');
+            const schedulerParam = paramList.find(p => p.id === 'scheduler');
+            
+            if (samplerParam && this.dom.sampler) {
+                this.dom.sampler.innerHTML = '';
+                (samplerParam.values || []).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    this.dom.sampler.appendChild(opt);
+                });
+            }
+             if (schedulerParam && this.dom.scheduler) {
+                this.dom.scheduler.innerHTML = '';
+                (schedulerParam.values || []).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    this.dom.scheduler.appendChild(opt);
+                });
+            }
+        }
+
+        parseLoras(modelsData) {
+            if (!this.dom.loraBrowser || !modelsData) return;
+            const loraModels = modelsData['LoRA'] || [];
+            this.allLoras = loraModels.map(l => l[0]).sort(); // Extract just the name
+            this.renderLoraList(this.allLoras);
+        }
+
+        parseEmbeddings(wildcardsData) {
+            if (!this.dom.embedBrowser || !wildcardsData) return;
+            this.dom.embedBrowser.innerHTML = '';
+            this.allEmbeddings = (wildcardsData || []).sort();
+            this.renderEmbedList(this.allEmbeddings);
+        }
+
+       getGenerationParams() {
+            const embeds = Array.from(this.selectedEmbeds).map(e => `<embedding:${e}>`).join(' ');
+            
+            // Format LoRAs as "<lora:NAME:WEIGHT>" and append to prompt
+            const loraString = Object.entries(this.selectedLoras)
+                .map(([name, weight]) => `<lora:${name}:${weight}>`)
+                .join(' ');
+
+            return {
+                model: this.dom.model.value,
+                steps: parseInt(this.dom.steps.value),
+                cfgscale: parseFloat(this.dom.cfg.value),
+                sampler: this.dom.sampler.value,
+                scheduler: this.dom.scheduler.value,
+                prompt: `${this.dom.prompt.value} ${embeds} ${loraString}`.trim().replace(/\s+/g, ' '),
+                negativeprompt: this.dom.neg.value
+                // Removed separate 'loras' and 'loraweights' as they are now in the prompt
+            };
+        }
+
+        startGeneration() {
+            if (this.isGenerating) return;
+            this.isGenerating = true;
+            this.dom.generate.style.display = 'none';
+            this.dom.interrupt.style.display = 'block';
+            this.dom.stepsStrip.innerHTML = '';
+            this.dom.info.textContent = 'Generating...';
+            this.dom.progress.style.width = '0%';
+
+            const params = this.getGenerationParams();
+            log('Generation started');
+
+            makeWSRequestT2I('GenerateText2ImageWS', params, data => this.handleUpdate(data));
+        }
+
+        handleUpdate(data) {
+            if (data.progress !== undefined) this.dom.progress.style.width = `${data.progress * 100}%`;
+            if (data.image) {
+                const img = document.createElement('img');
+                img.src = data.image;
+                img.onclick = () => this.dom.img.src = data.image;
+                this.dom.stepsStrip.appendChild(img);
+                this.dom.stepsStrip.scrollLeft = this.dom.stepsStrip.scrollWidth;
+            }
+            if (data.status) this.dom.info.textContent = data.status;
+            if (data.images) this.finishGeneration(data.images);
+        }
+
+        finishGeneration(images) {
+            this.isGenerating = false;
+            this.dom.generate.style.display = 'block';
+            this.dom.interrupt.style.display = 'none';
+            this.dom.info.textContent = 'Complete';
+            images.forEach(i => {
+                this.dom.img.src = i.image;
+                const thumb = document.createElement('img');
+                thumb.src = i.image;
+                thumb.onclick = () => this.dom.img.src = i.image;
+                this.dom.history.insertBefore(thumb, this.dom.history.firstChild);
+            });
+            if (this.continuousMode) setTimeout(() => this.startGeneration(), 800);
+        }
+
+        interruptGeneration() {
+            doInterrupt();
+            this.isGenerating = false;
+            this.dom.generate.style.display = 'block';
+            this.dom.interrupt.style.display = 'none';
+        }
+
+        toggleContinuous() {
+            this.continuousMode = this.dom.continuous.checked;
+        }
+
+        clearHistory() {
+            this.dom.history.innerHTML = '';
+        }
+
+        syncFromMain() {
+            if (typeof getGenInput !== 'function') return;
+            const p = getGenInput();
+            this.dom.model.value = p.model || '';
+            this.dom.steps.value = p.steps || 28;
+            this.dom.cfg.value = p.cfgscale || 7;
+            this.dom.sampler.value = p.sampler || '';
+            this.dom.scheduler.value = p.scheduler || '';
+            this.dom.prompt.value = p.prompt || '';
+            this.dom.neg.value = p.negativeprompt || '';
+        }
+
+        pushToMain() {
+            const p = this.getGenerationParams();
+            const ids = {
+                current_model: p.model,
+                input_steps: p.steps,
+                input_cfgscale: p.cfgscale,
+                input_sampler: p.sampler,
+                input_scheduler: p.scheduler,
+                input_prompt: p.prompt,
+                input_negativeprompt: p.negativeprompt
+            };
+            Object.entries(ids).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            });
+        }
+    }
+
+    window.previewTab = new PreviewTab();
+})();

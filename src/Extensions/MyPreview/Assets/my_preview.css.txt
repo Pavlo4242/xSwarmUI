@@ -1,0 +1,336 @@
+/* ============================================================================
+   SCOPED PREVIEW TAB STYLESHEET
+   All rules are prefixed with .preview-wrapper to prevent breaking SwarmUI core
+   ============================================================================ */
+
+.preview-wrapper {
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* Force box-sizing for all children to prevent layout breakage */
+.preview-wrapper * {
+    box-sizing: border-box;
+}
+
+/* ========== HEADER ========== */
+.preview-wrapper .p-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+}
+
+.preview-wrapper .p-left, 
+.preview-wrapper .p-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-wrapper .p-center {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+/* ========== INPUTS (Scoped) ========== */
+.preview-wrapper .p-center select, 
+.preview-wrapper .p-center input[type=range] {
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: #c9d1d9;
+}
+
+.preview-wrapper .p-center input[type=range] {
+    accent-color: #58a6ff;
+    width: 120px; /* Added width to ensure visibility */
+}
+
+.preview-wrapper .p-center span {
+    margin-left: 8px;
+    font-weight: 600;
+}
+
+.preview-wrapper .slider-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.preview-wrapper .slider-group label {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+/* ========== BODY & SIDEBAR ========== */
+.preview-wrapper .p-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.preview-wrapper .p-sidebar {
+    width: 340px;
+    background: #161b22;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 1px solid #30363d;
+    flex-shrink: 0;
+}
+
+.preview-wrapper .p-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.preview-wrapper .p-section h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #58a6ff;
+}
+
+.preview-wrapper .p-section input[type=text] {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 8px;
+    border-radius: 6px;
+    color: #c9d1d9;
+    margin-bottom: 8px;
+}
+
+/* ========== BROWSERS ========== */
+.preview-wrapper .browser {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.preview-wrapper .browser div {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background .2s;
+}
+
+.preview-wrapper .browser div:hover, 
+.preview-wrapper .browser div.selected {
+    background: #21262d;
+}
+
+.preview-wrapper .active {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.preview-wrapper .active div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #21262d;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.preview-wrapper .active input {
+    width: 70px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 4px;
+    border-radius: 4px;
+    text-align: center;
+    color: #c9d1d9;
+}
+
+/* ========== MAIN DISPLAY ========== */
+.preview-wrapper .p-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #010409;
+    min-width: 0; /* Prevents flex overflow */
+}
+
+.preview-wrapper .p-image {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    overflow: hidden;
+}
+
+.preview-wrapper .p-image img {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.8);
+}
+
+.preview-wrapper #p_info {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(13,17,23,.9);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    border: 1px solid #30363d;
+    z-index: 10;
+}
+
+.preview-wrapper #p_progress {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 8px;
+    background: #161b22;
+}
+
+.preview-wrapper #p_fill {
+    height: 100%;
+    background: #58a6ff;
+    transition: width .3s;
+    width: 0%;
+}
+
+/* ========== FILMSTRIPS ========== */
+.preview-wrapper .steps {
+    height: 140px;
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 16px;
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    flex-shrink: 0;
+}
+
+.preview-wrapper .steps img {
+    height: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform .2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+
+.preview-wrapper .steps img:hover {
+    transform: scale(1.05);
+}
+
+.preview-wrapper .history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 12px;
+}
+
+.preview-wrapper .history img {
+    width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* ========== PROMPTS ========== */
+.preview-wrapper .p-prompts {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    background: #161b22;
+    flex-shrink: 0;
+}
+
+.preview-wrapper .p-prompts textarea {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 12px;
+    border-radius: 8px;
+    color: #c9d1d9;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* ========== BUTTONS (Scoped) ========== */
+/* Note: We target button inside .preview-wrapper ONLY */
+.preview-wrapper button {
+    background: #238636;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background .2s;
+}
+
+.preview-wrapper button:hover {
+    background: #2ea043;
+}
+
+.preview-wrapper #p_interrupt {
+    background: #da3633;
+}
+
+.preview-wrapper #p_interrupt:hover {
+    background: #f85149;
+}
+
+.preview-wrapper #p_toggle_debug {
+    background: #30363d;
+}
+
+.preview-wrapper #p_toggle_debug:hover {
+    background: #484f58;
+}
+
+/* ========== DEBUG & STATUS ========== */
+.preview-wrapper #p_debug {
+    height: 120px;
+    background: #010409;
+    color: #39d353;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 12px;
+    overflow-y: auto;
+    border-top: 1px solid #30363d;
+    flex-shrink: 0;
+}
+
+.preview-wrapper .status {
+    padding: 4px 10px;
+    background: #238636;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width:1600px) {
+    .preview-wrapper .p-sidebar { width: 300px; }
+}
+
+@media (max-width:1400px) {
+    .preview-wrapper .p-sidebar { width: 260px; }
+    .preview-wrapper .p-center { gap: 16px; }
+}
