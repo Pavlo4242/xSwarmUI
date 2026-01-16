@@ -1,144 +1,163 @@
-<!-- refractored to use gen.css-->
-<div id="preview-tab-container" class="browser_container">
-    <!-- Header -->
-    <div class="preview-header">
-        <div class="header-left">
-            <button id="p_pull" class="refresh-button small" title="Sync from Main">↓ Sync</button>
-            <button id="p_push" class="refresh-button small" title="Push to Main">↑ Push</button>
-            <span id="p_connection_status" class="connection-status disconnected">Disconnected</span>
+<div id="preview-tab-container" class="p-tab-container">
+    <div class="p-header">
+        <div class="p-header-left">
+            <button class="p-btn p-btn-outline" id="p_toggle_left" title="Settings">⚙️</button>
+            <button id="p_pull" class="p-btn p-btn-secondary" title="Sync from Main">↓ Sync</button>
+            <button id="p_push" class="p-btn p-btn-secondary" title="Push to Main">↑ Push</button>
+            <span id="p_connection_status" class="p-badge disconnected">Disc</span>
         </div>
-        
-        <div class="header-center">
-            <div class="header-param-group">
+        <div class="p-header-center">
+            <div class="p-param-group">
                 <span>Model</span>
-                <select id="p_model"></select>
+                <select id="p_model" class="p-select p-w-xl"></select>
             </div>
-            <div class="header-param-group">
+            <div class="p-param-group">
                 <span>W</span>
-                <input type="number" id="p_width" value="512" step="64" min="256" max="2048">
+                <input type="number" id="p_width" value="512" step="64" class="p-input p-w-sm">
             </div>
-            <div class="header-param-group">
+            <div class="p-param-group">
                 <span>H</span>
-                <input type="number" id="p_height" value="512" step="64" min="256" max="2048">
+                <input type="number" id="p_height" value="512" step="64" class="p-input p-w-sm">
             </div>
-            <div class="header-param-group">
-                <span>Steps</span>
-                <input type="range" id="p_steps" value="20" min="1" max="100">
-                <span id="p_steps_val" class="header-value-display">20</span>
-            </div>
-            <div class="header-param-group">
-                <span>CFG</span>
-                <input type="range" id="p_cfg" value="7" step="0.5" min="1" max="30">
-                <span id="p_cfg_val" class="header-value-display">7.0</span>
-            </div>
-            <div class="header-param-group">
+            <div class="p-param-group p-seed-group">
                 <span>Seed</span>
-                <input type="number" id="p_seed" value="-1">
+                <div class="p-input-row">
+                    <input type="number" id="p_seed" value="-1" step="1" class="p-input p-w-md" placeholder="-1">
+                    <input type="checkbox" id="p_seed_lock" title="Lock Seed">
+                </div>
+                <div id="p_seed_history" class="p-seed-history-row"></div>
             </div>
-            <div class="header-param-group">
+            <div class="p-param-group">
+                <span>Steps</span>
+                <div class="p-range-group">
+                    <input type="range" id="p_steps" value="20" min="1" max="100" class="p-range p-w-md">
+                    <input type="number" id="p_steps_val" value="20" class="p-input p-range-val p-w-xs">
+                </div>
+            </div>
+            <div class="p-param-group">
+                <span>CFG</span>
+                <div class="p-range-group">
+                    <input type="range" id="p_cfg" value="7" step="0.5" min="1" max="30" class="p-range p-w-md">
+                    <input type="number" id="p_cfg_val" value="7" class="p-input p-range-val p-w-xs">
+                </div>
+            </div>
+            <div class="p-param-group p-scanner-group">
+                <span title="Scanner Limit">Scan</span>
+                <div class="p-input-row">
+                    <input type="number" id="p_stop_at" value="-1" min="-1" class="p-input p-w-xs" placeholder="Off">
+                    <div class="p-check-group" title="Seed++"><input type="checkbox" id="p_iterate_seed" checked><label>++</label></div>
+                    <div class="p-check-group" title="Loop"><input type="checkbox" id="p_scanner_loop" checked><label>Loop</label></div>
+                </div>
+            </div>
+            <div class="p-param-group">
                 <span>Batch</span>
-                <input type="number" id="p_batch" value="1" min="1" max="8">
+                <input type="number" id="p_batch" value="1" class="p-input p-w-xs">
             </div>
-            <div class="header-param-group" style="border-left: 1px solid var(--light-border); padding-left: 8px;">
-                <span style="color: var(--emphasis);">Every N</span>
-                <input type="number" id="p_preview_interval" value="4" min="1" max="50" title="Capture preview every N steps">
+            <div class="p-param-group">
+                <span>Sampler</span>
+                <select id="p_sampler" class="p-select p-w-md"></select>
+            </div>
+            <div class="p-param-group">
+                <span>Scheduler</span>
+                <select id="p_scheduler" class="p-select p-w-md"></select>
             </div>
         </div>
-        
-        <div class="header-right">
-            <label class="auto-input-box-label"><input type="checkbox" id="p_auto" checked><span>Auto</span></label>
-            <label class="auto-input-box-label"><input type="checkbox" id="p_watch_main" checked><span>Watch</span></label>
-            <button id="p_gen" class="generate-button" style="width: auto; padding: 0.2rem 1rem; font-size: 100%; margin: 0;">Generate</button>
-            <button id="p_interrupt" class="interrupt-button" style="display:none; margin: 0; padding: 0.2rem 1rem;">Stop</button>
-            <label class="auto-input-box-label"><input type="checkbox" id="p_modify_mode"><span>Modify</span></label>
-            <span id="p_modify_warning" class="modify-mode-warning" style="display:none;">MOD</span>
+        <div class="p-header-right">
+            <div class="p-check-group"><input type="checkbox" id="p_compare_mode"><label>CMP</label></div>
+            <div class="p-check-group"><input type="checkbox" id="p_show_prompt_overlay"><label>PRM</label></div>
+            <div class="p-check-group"><input type="checkbox" id="p_auto" checked><label>Auto</label></div>
+            <button id="p_generate" class="p-btn p-btn-primary">Generate</button>
+            <button id="p_interrupt" class="p-btn p-btn-danger" style="display:none;">Stop</button>
+            <button class="p-btn p-btn-outline" id="p_toggle_right">🕒</button>
         </div>
     </div>
 
-    <!-- Main Grid -->
-    <div class="preview-grid">
-        <div class="preview-col-left">
-            <div class="d-flex justify-content-between">
-                <h5>LoRA Browser</h5>
-                <button id="p_refresh_loras_browser" class="refresh-button small" title="Refresh LoRA List">↻ Refresh</button>
+    <!-- Main Body -->
+    <div class="p-main-flex">
+        <div id="p_sidebar" class="p-sidebar">
+            <div class="p-group">
+                <label>Positive Prompt</label>
+                <textarea id="p_prompt" rows="4" class="p-input p-textarea"></textarea>
             </div>
-            <input type="text" id="p_lora_search" placeholder="Search LoRAs...">
-            <div id="p_lora_browser" class="lora-browser-list">
-                <div class="secondary-text">Loading LoRAs...</div>
+            <div class="p-group">
+                <label>Negative Prompt</label>
+                <textarea id="p_neg" rows="4" class="p-input p-textarea"></textarea>
             </div>
-        </div>
-
-        <div class="preview-col-center">
-            <div class="current_image" id="p_image_large">
-                <div class="preview-overlay-info" id="p_info" style="display:none;">Ready</div>
-                <div class="image-preview-progress-wrapper" id="p_progress" style="display:none;">
-                    <div class="image-preview-progress-inner">
-                        <div id="p_fill" class="image-preview-progress-overall"></div>
+            <div class="p-group">
+                <label>Variation</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="p_var_seed" class="p-input" placeholder="Seed" style="flex:1;">
+                    <input type="number" id="p_var_strength" class="p-input" value="0" step="0.01" min="0" max="1" style="width:60px;">
+                </div>
+            </div>
+            <!-- Modifiers Panel -->
+            <div class="p-collapsible">
+                <div class="p-collapsible-header">Modifiers <span class="arrow">▼</span></div>
+                <div class="p-collapse-content show">
+                    <div class="p-tabs">
+                        <button class="p-tab-link active" data-tab="loras">LoRAs</button>
+                        <button class="p-tab-link" data-tab="embeds">Embeddings</button>
+                        <button id="p_refresh_models" class="p-btn p-btn-sm p-btn-outline">↻</button>
+                    </div>
+                    <div class="p-tab-content active" id="tab-loras">
+                        <div id="p_lora_active_wrapper" style="display:none; border-bottom: 2px solid var(--emphasis); margin-bottom:5px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span class="p-section-label">Active</span>
+                                <button id="p_clear_loras" class="p-btn p-btn-sm p-btn-danger">Clear</button>
+                            </div>
+                            <div id="p_lora_active_list" class="p-list-container active-list"></div>
+                        </div>
+                        <div id="p_lora_bucket_wrapper" style="display:none; border-bottom: 1px dashed var(--text-soft); margin-bottom:5px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span class="p-section-label">Favorites</span>
+                                <button id="p_clear_bucket" class="p-btn p-btn-sm p-btn-outline">Clear</button>
+                            </div>
+                            <div id="p_lora_bucket_list" class="p-list-container bucket-list"></div>
+                        </div>
+                        <input type="text" id="p_lora_search" class="p-input p-search" placeholder="Search LoRAs...">
+                        <div id="p_lora_list" class="p-list-container"></div>
+                    </div>
+                    <div class="p-tab-content" id="tab-embeds">
+                        <!-- Embedding Controls -->
+                        <div style="display:flex; gap:5px; margin-bottom:8px; align-items:center;">
+                            <select id="p_embed_target" class="p-select" style="flex:1;"><option value="pos">Pos</option><option value="neg">Neg</option></select>
+                            <input type="number" id="p_embed_weight" class="p-input" value="1.0" step="0.1" style="width:50px;" title="Weight">
+                        </div>
+                        <input type="text" id="p_embed_search" class="p-input p-search" placeholder="Search Embeddings...">
+                        <div id="p_embed_list" class="p-list-container" style="height: 300px;"></div>
                     </div>
                 </div>
-                <div class="error-popover" id="p_error" style="display:none;"></div>
-            </div>
-            
-            <div class="preview-filmstrip-container">
-                <div class="preview-filmstrip-header">
-                    <h5>Filmstrip</h5>
-                    <button id="p_clear_steps" class="refresh-button small">Clear</button>
-                </div>
-                <div id="p_step_strip" class="preview-filmstrip">
-                    <div class="secondary-text">Step previews will appear here</div>
-                </div>
-            </div>
-            
-            <div class="preview-filmstrip-container">
-                 <div class="preview-filmstrip-header">
-                    <h5>History</h5>
-                </div>
-                <div id="p_history" class="preview-filmstrip">
-                    <div class="secondary-text">History (latest at top)</div>
-                </div>
             </div>
         </div>
-
-        <div class="preview-col-right">
-             <div class="d-flex justify-content-between">
-                <h5>Active LoRAs <span id="p_lora_count">(0)</span></h5>
-                <button id="p_clear_loras" class="refresh-button small" style="display:none;">Clear All</button>
+        <div id="p_resizer" class="p-resizer"></div>
+        <div class="p-content">
+            <div class="p-top-panel">
+                <div class="p-image-area">
+                    <div id="p_info" class="p-overlay-info" style="display:none;"></div>
+                    <div id="p_prompt_overlay" class="p-overlay-prompt" style="display:none;"></div>
+                    <!-- Enhanced Progress Bar -->
+                    <div id="p_progress" class="p-progress-bar" style="display:none;">
+                        <div id="p_fill"></div>
+                        <span id="p_progress_text">Initializing...</span>
+                    </div>
+                    <div id="p_image_large" class="p-image-container">
+                        <div class="p-placeholder-text">Ready</div>
+                    </div>
+                </div>
             </div>
-            <div id="p_loras" class="active-lora-list">
-                <div class="secondary-text">No LoRAs selected</div>
+            <div id="p_vertical_resizer" class="p-resizer vertical"></div>
+            <div class="p-bottom-panel">
+                <div class="p-filmstrip-header"><button id="p_clear_steps" class="p-btn p-btn-sm p-btn-outline">Clear</button></div>
+                <div id="p_step_strip" class="p-filmstrip"></div>
             </div>
-            
-            <hr>
-            
-            <h5>Quick Actions</h5>
-            <div class="quick-actions-list">
-                <button id="p_refresh_loras" class="refresh-button small">Refresh LoRA Weights</button>
-                <button id="p_clear_history" class="refresh-button small">Clear History</button>
-            </div>
-            
-            <h5>Settings</h5>
-            <label class="auto-input-box-label">
-                <input type="checkbox" id="p_save_interims">
-                <span>Save Interim Images</span>
-            </label>
+        </div>
+        <div id="p_right_resizer" class="p-resizer"></div>
+        <div id="p_right_sidebar" class="p-sidebar right">
+            <div class="p-sidebar-header"><h5>History</h5><button id="p_clear_history" class="p-btn p-btn-sm p-btn-danger">🗑️</button></div>
+            <div id="p_history" class="history-grid"></div>
         </div>
     </div>
-    
-    <div class="preview-prompt-area">
-        <div class="prompt-box">
-            <span class="label-box-wrap">Positive Prompt</span>
-            <textarea id="p_prompt" rows="6" placeholder="Enter prompt...">a cat</textarea>
-        </div>
-        <div class="prompt-box">
-            <span class="label-box-wrap">Negative Prompt</span>
-            <textarea id="p_neg" rows="6" placeholder="Negative Prompt"></textarea>
-        </div>
-    </div>
-
-    <div id="p_debug" style="display: none;"></div>
-
-    <div id="p_lightbox" class="p-lightbox-overlay" style="display:none;">
-        <span class="p-lightbox-close">&times;</span>
-        <img class="p-lightbox-image" src="">
+    <div id="p_lightbox" class="p-modal" style="display:none;">
+        <div class="p-modal-content"><span class="p-modal-close">&times;</span><img class="p-lightbox-image" src=""></div>
     </div>
 </div>
