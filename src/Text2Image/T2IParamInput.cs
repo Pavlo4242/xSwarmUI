@@ -377,7 +377,6 @@ public class T2IParamInput
     {
         JObject paramData = GenParameterMetadata();
         paramData["swarm_version"] = Utilities.Version;
-        JObject final = new() { ["sui_image_params"] = paramData };
         JObject extraData = [];
         foreach ((string key, object val) in ExtraMeta)
         {
@@ -393,12 +392,14 @@ public class T2IParamInput
             if (!ParamsQueried.Contains(key) && (!T2IParamTypes.TryGetType(key, out T2IParamType type, this) || !type.IntentionalUnused))
             {
                 unused.Add(key);
+                paramData.Remove(key);
             }
         }
         if (unused.Count > 0)
         {
             extraData["unused_parameters"] = unused;
         }
+        JObject final = new() { ["sui_image_params"] = paramData };
         if (extraData.Count > 0)
         {
             final["sui_extra_data"] = extraData;
@@ -670,15 +671,15 @@ public class T2IParamInput
     }
     
     /// <summary>Removes a param.</summary>
-    public void Remove<T>(T2IRegisteredParam<T> param)
+    public void Remove<T>(T2IRegisteredParam<T> param, int sectionId = 0)
     {
-        InternalSet.Remove(param);
+        GetSectionParamOverrides(sectionId).Remove(param);
     }
 
     /// <summary>Removes a param.</summary>
-    public void Remove(T2IParamType param)
+    public void Remove(T2IParamType param, int sectionId = 0)
     {
-        InternalSet.Remove(param);
+        GetSectionParamOverrides(sectionId).Remove(param);
     }
 
     /// <summary>Makes sure the input has valid seed inputs and other special parameter handlers.</summary>

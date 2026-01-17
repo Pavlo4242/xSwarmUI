@@ -259,9 +259,10 @@ public class SwarmSwarmBackend : AbstractT2IBackend
                     if (IsAControlInstance && !ids.Remove(id) && (Settings.AllowForwarding || type != "swarmswarmbackend"))
                     {
                         Logs.Verbose($"{HandlerTypeData.Name} {BackendData.ID} adding remote backend {id} ({type}) '{title}'");
+                        // TODO: support remote non-T2I Backends
                         Handler.AddNewNonrealBackend(HandlerTypeData, BackendData, SettingsRaw, (newData) =>
                         {
-                            SwarmSwarmBackend newSwarm = newData.Backend as SwarmSwarmBackend;
+                            SwarmSwarmBackend newSwarm = newData.AbstractBackend as SwarmSwarmBackend;
                             newSwarm.LinkedRemoteBackendID = id;
                             newSwarm.Models = Models;
                             newSwarm.LinkedRemoteBackendType = type;
@@ -269,7 +270,7 @@ public class SwarmSwarmBackend : AbstractT2IBackend
                             newSwarm.CanLoadModels = backend["can_load_models"].Value<bool>();
                             newSwarm.Parent = this;
                             OnSwarmBackendAdded?.Invoke(newSwarm);
-                            ControlledNonrealBackends.TryAdd(id, newData);
+                            ControlledNonrealBackends.TryAdd(id, newData as BackendHandler.T2IBackendData);
                         });
                     }
                     if (ControlledNonrealBackends.TryGetValue(id, out BackendHandler.T2IBackendData data))
@@ -529,6 +530,7 @@ public class SwarmSwarmBackend : AbstractT2IBackend
         {
             req[T2IParamTypes.ForwardRawBackendData.Type.ID] = true;
         }
+        req[T2IParamTypes.ForwardSwarmData.Type.ID] = true;
         return req;
     }
 
@@ -619,6 +621,21 @@ public class SwarmSwarmBackend : AbstractT2IBackend
                         string datab64 = rawData["data"].ToString();
                         byte[] data = Convert.FromBase64String(datab64);
                         user_input.ReceiveRawBackendData?.Invoke(type, data);
+                    }
+                    else if (response.TryGetValue("raw_swarm_data", out JToken rawSwarmDataTok) && rawSwarmDataTok is JObject rawSwarmData)
+                    {
+                        Logs.Verbose($"Got raw spawn data from websocket: {rawSwarmData.ToDenseDebugString(true)}");
+                        if (rawSwarmData.TryGetValue("params_used", out JToken paramsUsed))
+                        {
+                            foreach (JToken paramUsed in paramsUsed)
+                            {
+                                user_input.ParamsQueried.Add($"{paramUsed}");
+                            }
+                        }
+                        if (user_input.Get(T2IParamTypes.ForwardSwarmData, false))
+                        {
+                            takeOutput(response);
+                        }
                     }
                     else
                     {

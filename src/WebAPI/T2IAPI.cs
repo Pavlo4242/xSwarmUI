@@ -175,7 +175,7 @@ public static class T2IAPI
                 discards = [.. discard.Values<int>()];
             }
         }
-        if (discards != null)
+        if (discards is not null)
         {
             foreach (int x in discards)
             {
@@ -287,7 +287,8 @@ public static class T2IAPI
             };
         }
         user_input.ApplySpecialLogic();
-        images = user_input.Get(T2IParamTypes.Images, images);
+        images = user_input.Get(T2IParamTypes.Images, 1);
+        claim.Extend(images - claim.WaitingGenerations);
         Logs.Info($"User {session.User.UserID} requested {images} image{(images == 1 ? "" : "s")} with model '{user_input.Get(T2IParamTypes.Model)?.Name}'...");
         if (Logs.MinimumLevel <= Logs.LogLevel.Verbose)
         {
@@ -356,6 +357,10 @@ public static class T2IAPI
                 imageSet.Add(image);
             }
             WebhookManager.SendEveryGenWebhook(thisParams, url, image.File);
+            if (thisParams.Get(T2IParamTypes.ForwardSwarmData, false))
+            {
+                output(new JObject() { ["raw_swarm_data"] = new JObject() { ["params_used"] = JArray.FromObject(thisParams.ParamsQueried.ToArray()) } });
+            }
             output(new JObject() { ["image"] = url, ["batch_index"] = $"{actualIndex}", ["request_id"] = $"{thisParams.UserRequestId}", ["metadata"] = string.IsNullOrWhiteSpace(metadata) ? null : metadata });
         }
         for (int i = 0; i < images && !claim.ShouldCancel; i++)

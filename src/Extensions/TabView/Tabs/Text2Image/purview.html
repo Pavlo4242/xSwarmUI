@@ -1,3 +1,4 @@
+<!-- //REVERSION -->
 <div id="preview-tab-container" class="p-tab-container">
     <div class="p-header">
         <div class="p-header-left">
@@ -68,7 +69,7 @@
             <div class="p-check-group"><input type="checkbox" id="p_auto" checked><label>Auto</label></div>
             <button id="p_generate" class="p-btn p-btn-primary">Generate</button>
             <button id="p_interrupt" class="p-btn p-btn-danger" style="display:none;">Stop</button>
-            <button class="p-btn p-btn-outline" id="p_toggle_right">🕒</button>
+            <button class="p-btn p-btn-outline" id="p_toggle_right">🕙</button>
         </div>
     </div>
 
@@ -97,7 +98,7 @@
                     <div class="p-tabs">
                         <button class="p-tab-link active" data-tab="loras">LoRAs</button>
                         <button class="p-tab-link" data-tab="embeds">Embeddings</button>
-                        <button id="p_refresh_models" class="p-btn p-btn-sm p-btn-outline">↻</button>
+                        <button id="p_refresh_models" class="p-btn p-btn-sm p-btn-outline">🔄</button>
                     </div>
                     <div class="p-tab-content active" id="tab-loras">
                         <div id="p_lora_active_wrapper" style="display:none; border-bottom: 2px solid var(--emphasis); margin-bottom:5px;">
@@ -153,7 +154,10 @@
         </div>
         <div id="p_right_resizer" class="p-resizer"></div>
         <div id="p_right_sidebar" class="p-sidebar right">
-            <div class="p-sidebar-header"><h5>History</h5><button id="p_clear_history" class="p-btn p-btn-sm p-btn-danger">🗑️</button></div>
+            <div class="p-sidebar-header">
+                <h5>History</h5>
+                <button id="p_clear_history" class="p-btn p-btn-sm p-btn-danger" title="Clear Unlocked History">🗑️</button>
+            </div>
             <div id="p_history" class="history-grid"></div>
         </div>
     </div>

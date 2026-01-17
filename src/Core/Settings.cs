@@ -151,7 +151,10 @@ public class Settings : AutoConfiguration
         public int MaxBackendInitAttempts = 3;
 
         [ConfigComment("Safety check, the maximum duration all requests can be waiting for a backend before the system declares a backend handling failure.\nIf you get backend timeout errors while intentionally running very long generations, increase this value.")]
-        public int MaxTimeoutMinutes = 120;
+        public double MaxTimeoutMinutes = 120;
+
+        [ConfigComment("If checked, when MaxTimeoutMinutes is hit, forcibly restart all backends.\nIf unchecked, pending jobs will be cancelled with an error message.")]
+        public bool ForceRestartOnTimeout = false;
 
         [ConfigComment("The maximum duration an individual request can be waiting on a backend to be available before giving up.\n"
             + "Not to be confused with 'MaxTimeoutMinutes' which requires backends be unresponsive for that duration, this duration includes requests that are merely waiting because other requests are queued."
@@ -560,8 +563,12 @@ public class Settings : AutoConfiguration
             [SettingsOptions(Impl = typeof(AudioImpl))]
             public string CompletionSound = "";
 
-            [ConfigComment($"If any sound effects are enabled, this is the volume they will play at.\n0 means silent, 1 means max volume, 0.5 means half volume.")]
+            [ConfigComment($"For system sound effects such as CompletionSound, this is the volume they will play at.\n0 means silent, 1 means max volume, 0.5 means half volume.")]
             public double Volume = 0.5;
+
+            [ConfigComment("When a video is played, what should be done with the audio?")]
+            [ManualSettingsOptions(Impl = null, Vals = ["last", "play", "silent"], ManualNames = ["Remember Last", "Autoplay", "Default to Silent"])]
+            public string VideoAudioBehavior = "last";
         }
 
         [ConfigComment("Settings related to audio.")]
